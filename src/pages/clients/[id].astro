@@ -1,0 +1,227 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import clients from '../../data/clients.json';
+import projects from '../../data/projects.json';
+import tasks from '../../data/tasks.json';
+
+export function getStaticPaths() {
+  return clients.map((client) => ({
+    params: { id: client.id },
+    props: { client },
+  }));
+}
+
+const { client } = Astro.props;
+const clientProjects = projects.filter((p) => p.client === client.id);
+const clientTasks = tasks.filter((t) => clientProjects.some((p) => p.id === t.project));
+
+const activeProjects = clientProjects.filter((p) => p.status === 'in-progress' || p.status === 'review').length;
+const completedTasks = clientTasks.filter((t) => t.status === 'done').length;
+const totalBudget = clientProjects.reduce((sum, p) => sum + p.budget, 0);
+const totalSpent = clientProjects.reduce((sum, p) => sum + p.spent, 0);
+
+const avatarColors: Record<string, string> = {
+  'client-001': 'bg-accent-600',
+  'client-002': 'bg-amber-500',
+  'client-003': 'bg-green-500',
+  'client-004': 'bg-red-400',
+};
+
+const statusColors: Record<string, string> = {
+  'in-progress': 'text-blue-400 bg-blue-500/10',
+  'review': 'text-amber-400 bg-amber-500/10',
+  'lead': 'text-surface-400 bg-surface-700/50',
+  'done': 'text-green-400 bg-green-500/10',
+};
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return 'TBD';
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function formatCurrency(amount: number): string {
+  return '$' + amount.toLocaleString();
+}
+---
+
+<DashboardLayout title={client.contact} active="clients">
+  <!-- Back Link -->
+  <a
+    href="/clients/"
+    class="mb-6 inline-flex items-center gap-1 text-sm text-surface-400 transition-colors hover:text-accent-400"
+  >
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+    </svg>
+    Clients
+  </a>
+
+  <!-- Header -->
+  <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center">
+    <div class={`flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold text-white ${avatarColors[client.id] || 'bg-accent-600'}`}>
+      {client.avatar}
+    </div>
+    <div class="flex-1">
+      <div class="flex flex-wrap items-center gap-3">
+        <h1 class="text-2xl font-bold text-surface-100">{client.contact}</h1>
+        <span class:list={[
+          'inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider',
+          client.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400',
+        ]}>
+          {client.status}
+        </span>
+      </div>
+      <p class="mt-1 text-sm text-surface-400">{client.company}</p>
+    </div>
+  </div>
+
+  <!-- Two Column Layout -->
+  <div class="grid gap-6 lg:grid-cols-3">
+    <!-- Left Column (2/3) -->
+    <div class="space-y-6 lg:col-span-2">
+      <!-- Contact Info Card -->
+      <div class="rounded-xl border border-surface-700/50 bg-surface-900 p-5">
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Contact Information</h2>
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div>
+            <p class="text-xs text-surface-500">Email</p>
+            <a href={`mailto:${client.email}`} class="mt-1 text-sm text-accent-400 hover:underline">{client.email}</a>
+          </div>
+          <div>
+            <p class="text-xs text-surface-500">Phone</p>
+            <a href={`tel:${client.phone}`} class="mt-1 text-sm text-surface-200 hover:text-accent-400">{client.phone}</a>
+          </div>
+          <div>
+            <p class="text-xs text-surface-500">Industry</p>
+            <p class="mt-1 text-sm text-surface-200">{client.industry}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Projects Card -->
+      <div class="rounded-xl border border-surface-700/50 bg-surface-900 p-5">
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Projects</h2>
+        {clientProjects.length > 0 ? (
+          <div class="space-y-3">
+            {clientProjects.map((proj) => (
+              <div class="flex flex-col gap-3 rounded-lg border border-surface-700/30 bg-surface-800/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="h-3 w-3 flex-shrink-0 rounded-full" style={`background-color: ${proj.color}`}></span>
+                  <div>
+                    <p class="text-sm font-medium text-surface-200">{proj.title}</p>
+                    <p class="text-xs text-surface-500">Due {formatDate(proj.dueDate)}</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-4">
+                  <!-- Progress bar -->
+                  <div class="flex items-center gap-2">
+                    <div class="h-1.5 w-20 rounded-full bg-surface-700">
+                      <div class="h-1.5 rounded-full" style={`width: ${proj.progress}%; background-color: ${proj.color}`}></div>
+                    </div>
+                    <span class="text-xs text-surface-400">{proj.progress}%</span>
+                  </div>
+                  <!-- Status -->
+                  <span class={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusColors[proj.status] || 'text-surface-400 bg-surface-700/50'}`}>
+                    {proj.status}
+                  </span>
+                  <!-- Budget -->
+                  <span class="text-xs text-surface-400">
+                    {formatCurrency(proj.spent)} / {formatCurrency(proj.budget)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p class="text-sm text-surface-500">No projects yet.</p>
+        )}
+      </div>
+
+      <!-- Notes Card -->
+      <div class="rounded-xl border border-surface-700/50 bg-surface-900 p-5">
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Notes</h2>
+        <p class="text-sm leading-relaxed text-surface-300">{client.notes}</p>
+      </div>
+    </div>
+
+    <!-- Right Column (1/3) -->
+    <div class="space-y-6">
+      <!-- Revenue Card -->
+      <div class="rounded-xl border border-surface-700/50 bg-surface-900 p-5">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Revenue</h2>
+        <p class="text-3xl font-bold text-surface-100">{formatCurrency(client.totalRevenue)}</p>
+        <p class="mt-1 text-xs text-surface-500">Total earned</p>
+        {totalBudget > 0 && (
+          <div class="mt-4 space-y-2 border-t border-surface-700/50 pt-4">
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-surface-400">Total budget</span>
+              <span class="text-surface-200">{formatCurrency(totalBudget)}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-surface-400">Spent</span>
+              <span class="text-surface-200">{formatCurrency(totalSpent)}</span>
+            </div>
+            <div class="flex items-center justify-between text-xs">
+              <span class="text-surface-400">Remaining</span>
+              <span class="text-green-400">{formatCurrency(totalBudget - totalSpent)}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <!-- Stats Card -->
+      <div class="rounded-xl border border-surface-700/50 bg-surface-900 p-5">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Stats</h2>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-surface-400">Total Projects</span>
+            <span class="text-sm font-semibold text-surface-200">{clientProjects.length}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-surface-400">Active Projects</span>
+            <span class="text-sm font-semibold text-surface-200">{activeProjects}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-surface-400">Total Tasks</span>
+            <span class="text-sm font-semibold text-surface-200">{clientTasks.length}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-surface-400">Completed Tasks</span>
+            <span class="text-sm font-semibold text-green-400">{completedTasks}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Client Since Card -->
+      <div class="rounded-xl border border-surface-700/50 bg-surface-900 p-5">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Client Since</h2>
+        <p class="text-sm text-surface-200">{formatDate(client.since)}</p>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="rounded-xl border border-surface-700/50 bg-surface-900 p-5">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Quick Actions</h2>
+        <div class="space-y-2">
+          <a
+            href={`mailto:${client.email}`}
+            class="flex items-center gap-2 rounded-lg border border-surface-700/50 px-3 py-2.5 text-sm text-surface-300 transition-colors hover:border-accent-500/50 hover:bg-accent-600/5 hover:text-accent-400"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+            </svg>
+            Send Email
+          </a>
+          <a
+            href={`tel:${client.phone}`}
+            class="flex items-center gap-2 rounded-lg border border-surface-700/50 px-3 py-2.5 text-sm text-surface-300 transition-colors hover:border-accent-500/50 hover:bg-accent-600/5 hover:text-accent-400"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+            </svg>
+            Call {client.phone}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</DashboardLayout>

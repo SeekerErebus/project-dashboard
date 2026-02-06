@@ -1,0 +1,58 @@
+[
+  {
+    "id": "act-001",
+    "type": "task-completed",
+    "message": "Completed wireframe review for Acme Corp e-commerce redesign",
+    "project": "proj-001",
+    "timestamp": "2026-02-06T09:15:00Z"
+  },
+  {
+    "id": "act-002",
+    "type": "payment-received",
+    "message": "Payment received from Acme Corp — $1,320.00",
+    "project": "proj-001",
+    "timestamp": "2026-02-05T14:30:00Z"
+  },
+  {
+    "id": "act-003",
+    "type": "comment",
+    "message": "James Walker approved the blog layout design",
+    "project": "proj-002",
+    "timestamp": "2026-02-05T11:00:00Z"
+  },
+  {
+    "id": "act-004",
+    "type": "project-update",
+    "message": "Pinnacle Labs project kicked off — dev environment configured",
+    "project": "proj-003",
+    "timestamp": "2026-02-04T16:45:00Z"
+  },
+  {
+    "id": "act-005",
+    "type": "milestone",
+    "message": "Meridian Consulting website moved to review stage",
+    "project": "proj-002",
+    "timestamp": "2026-02-03T13:20:00Z"
+  },
+  {
+    "id": "act-006",
+    "type": "new-lead",
+    "message": "New lead: The Wild Sage restaurant website — discovery call completed",
+    "project": "proj-004",
+    "timestamp": "2026-02-02T10:00:00Z"
+  },
+  {
+    "id": "act-007",
+    "type": "task-completed",
+    "message": "Finished homepage hero section for Acme Corp",
+    "project": "proj-001",
+    "timestamp": "2026-02-01T17:30:00Z"
+  },
+  {
+    "id": "act-008",
+    "type": "invoice-sent",
+    "message": "Invoice #INV-2026-004 sent to Acme Corp — $1,320.00",
+    "project": "proj-001",
+    "timestamp": "2026-02-01T09:00:00Z"
+  }
+]

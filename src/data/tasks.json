@@ -1,0 +1,110 @@
+[
+  {
+    "id": "task-001",
+    "title": "Finalize product page component",
+    "project": "proj-001",
+    "priority": "high",
+    "status": "in-progress",
+    "dueDate": "2026-02-07",
+    "description": "Build the product detail page component with image gallery, size selector, and add-to-cart functionality."
+  },
+  {
+    "id": "task-002",
+    "title": "Stripe checkout integration",
+    "project": "proj-001",
+    "priority": "high",
+    "status": "todo",
+    "dueDate": "2026-02-12",
+    "description": "Integrate Stripe Elements for payment processing. Set up test mode first, then switch to live keys."
+  },
+  {
+    "id": "task-003",
+    "title": "Mobile responsive testing",
+    "project": "proj-001",
+    "priority": "medium",
+    "status": "todo",
+    "dueDate": "2026-02-15",
+    "description": "Test all pages on mobile breakpoints. Fix any layout issues. Test on iOS Safari and Android Chrome."
+  },
+  {
+    "id": "task-004",
+    "title": "Blog layout review",
+    "project": "proj-002",
+    "priority": "medium",
+    "status": "in-progress",
+    "dueDate": "2026-02-08",
+    "description": "Prepare blog layout for client review. Ensure typography scales properly and code blocks render correctly."
+  },
+  {
+    "id": "task-005",
+    "title": "Final QA and handoff prep",
+    "project": "proj-002",
+    "priority": "low",
+    "status": "todo",
+    "dueDate": "2026-02-10",
+    "description": "Run Lighthouse audit, fix any accessibility issues, prepare handoff documentation with CMS instructions."
+  },
+  {
+    "id": "task-006",
+    "title": "Set up monitoring endpoints",
+    "project": "proj-003",
+    "priority": "high",
+    "status": "in-progress",
+    "dueDate": "2026-02-10",
+    "description": "Configure API health check endpoints. Set up polling intervals and establish baseline latency metrics."
+  },
+  {
+    "id": "task-007",
+    "title": "Design chart components",
+    "project": "proj-003",
+    "priority": "medium",
+    "status": "todo",
+    "dueDate": "2026-02-14",
+    "description": "Build reusable chart components for latency, error rate, and throughput visualizations using Chart.js."
+  },
+  {
+    "id": "task-008",
+    "title": "Alert configuration UI",
+    "project": "proj-003",
+    "priority": "medium",
+    "status": "todo",
+    "dueDate": "2026-02-21",
+    "description": "Build the alert management interface. Support email and Slack notification channels with threshold configuration."
+  },
+  {
+    "id": "task-009",
+    "title": "Send contract to Wild Sage",
+    "project": "proj-004",
+    "priority": "high",
+    "status": "todo",
+    "dueDate": "2026-02-07",
+    "description": "Draft and send project contract with scope, timeline, and payment terms. Include 50% upfront, 50% on delivery."
+  },
+  {
+    "id": "task-010",
+    "title": "Update portfolio with Meridian project",
+    "project": null,
+    "priority": "low",
+    "status": "todo",
+    "dueDate": "2026-02-12",
+    "description": "Once Meridian project is signed off, add case study to portfolio site with screenshots and testimonial."
+  },
+  {
+    "id": "task-011",
+    "title": "Invoice Acme Corp - January",
+    "project": "proj-001",
+    "priority": "high",
+    "status": "done",
+    "dueDate": "2026-02-01",
+    "description": "Send January invoice for 40 hours of development work on the e-commerce redesign."
+  },
+  {
+    "id": "task-012",
+    "title": "Set up dev environment for Pinnacle",
+    "project": "proj-003",
+    "priority": "medium",
+    "status": "done",
+    "dueDate": "2026-01-30",
+    "description": "Clone repo, set up local Docker environment, configure API test credentials."
+  }
+]

@@ -1,0 +1,459 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import tasks from '../../data/tasks.json';
+import projects from '../../data/projects.json';
+
+const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
+
+const today = new Date();
+today.setHours(0, 0, 0, 0);
+const threeDaysFromNow = new Date(today);
+threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
+
+// Sort: done tasks at bottom, then by due date ascending
+const sortedTasks = [...tasks].sort((a, b) => {
+  if (a.status === 'done' && b.status !== 'done') return 1;
+  if (a.status !== 'done' && b.status === 'done') return -1;
+  const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+  const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+  return dateA - dateB;
+});
+
+function getDueDateClass(dateStr: string | null): string {
+  if (!dateStr) return 'text-surface-400';
+  const due = new Date(dateStr);
+  due.setHours(0, 0, 0, 0);
+  if (due < today) return 'text-red-400';
+  if (due <= threeDaysFromNow) return 'text-amber-400';
+  return 'text-surface-400';
+}
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return 'No date';
+  const d = new Date(dateStr);
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
+const activeTasks = tasks.filter((t) => t.status !== 'done').length;
+const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.project))];
+---
+
+<DashboardLayout title="Tasks" active="tasks">
+  <!-- Header -->
+  <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-surface-100">Tasks</h1>
+      <p class="mt-1 text-sm text-surface-400">{activeTasks} active tasks, {tasks.length} total</p>
+    </div>
+    <button
+      id="add-task-btn"
+      class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-700"
+    >
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+      Add Task
+    </button>
+  </div>
+
+  <!-- Add Task Form (hidden by default) -->
+  <div id="add-task-form" class="mb-6 hidden rounded-xl border border-surface-700/50 bg-surface-900 p-5">
+    <h3 class="mb-4 text-sm font-semibold text-surface-200">New Task</h3>
+    <form id="new-task-form" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="sm:col-span-2 lg:col-span-4">
+        <input
+          type="text"
+          id="task-title-input"
+          placeholder="Task title..."
+          required
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+        />
+      </div>
+      <div>
+        <select
+          id="task-project-input"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+        >
+          <option value="">No project</option>
+          {projects.map((p) => (
+            <option value={p.id}>{p.title}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <select
+          id="task-priority-input"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+        >
+          <option value="medium">Medium Priority</option>
+          <option value="high">High Priority</option>
+          <option value="low">Low Priority</option>
+        </select>
+      </div>
+      <div>
+        <input
+          type="date"
+          id="task-date-input"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+        />
+      </div>
+      <div class="flex items-end gap-2">
+        <button
+          type="submit"
+          class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-700"
+        >
+          Add
+        </button>
+        <button
+          type="button"
+          id="cancel-task-btn"
+          class="rounded-lg border border-surface-700 px-4 py-2 text-sm font-medium text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200"
+        >
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Filter Bar -->
+  <div class="mb-4 flex flex-wrap gap-3 rounded-xl border border-surface-700/50 bg-surface-900 p-4">
+    <!-- Project Filter -->
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-xs font-medium uppercase tracking-wider text-surface-500">Project</span>
+      <div class="flex flex-wrap gap-1">
+        <button class="filter-btn filter-project active rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-project="all">All</button>
+        {uniqueProjects.map((pid) => {
+          const proj = projectMap[pid!];
+          return proj ? (
+            <button class="filter-btn filter-project rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-project={pid}>
+              <span class="mr-1 inline-block h-2 w-2 rounded-full" style={`background-color: ${proj.color}`}></span>
+              {proj.title}
+            </button>
+          ) : null;
+        })}
+      </div>
+    </div>
+
+    <div class="hidden h-6 w-px bg-surface-700 sm:block"></div>
+
+    <!-- Priority Filter -->
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-xs font-medium uppercase tracking-wider text-surface-500">Priority</span>
+      <div class="flex gap-1">
+        <button class="filter-btn filter-priority active rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-priority="all">All</button>
+        <button class="filter-btn filter-priority rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-priority="high">High</button>
+        <button class="filter-btn filter-priority rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-priority="medium">Medium</button>
+        <button class="filter-btn filter-priority rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-priority="low">Low</button>
+      </div>
+    </div>
+
+    <div class="hidden h-6 w-px bg-surface-700 sm:block"></div>
+
+    <!-- Status Filter -->
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-xs font-medium uppercase tracking-wider text-surface-500">Status</span>
+      <div class="flex gap-1">
+        <button class="filter-btn filter-status active rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-status="all">All</button>
+        <button class="filter-btn filter-status rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-status="todo">To Do</button>
+        <button class="filter-btn filter-status rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-status="in-progress">In Progress</button>
+        <button class="filter-btn filter-status rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-status="done">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Task List -->
+  <div id="task-list" class="space-y-2">
+    {sortedTasks.map((task) => {
+      const proj = task.project ? projectMap[task.project] : null;
+      const priorityColors = {
+        high: 'bg-red-500',
+        medium: 'bg-amber-500',
+        low: 'bg-blue-500',
+      };
+      const statusLabels = {
+        'todo': 'To Do',
+        'in-progress': 'In Progress',
+        'done': 'Done',
+      };
+      const statusColors = {
+        'todo': 'text-surface-500',
+        'in-progress': 'text-blue-400',
+        'done': 'text-green-400',
+      };
+      return (
+        <div
+          class:list={[
+            'task-item group flex items-center gap-3 rounded-xl border border-surface-700/50 bg-surface-900 p-4 transition-colors hover:border-surface-600',
+            task.status === 'done' && 'opacity-50',
+          ]}
+          data-project={task.project || 'none'}
+          data-priority={task.priority}
+          data-status={task.status}
+        >
+          <!-- Checkbox -->
+          <button
+            class:list={[
+              'task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors',
+              task.status === 'done'
+                ? 'border-green-500 bg-green-500'
+                : 'border-surface-600 hover:border-accent-400',
+            ]}
+            aria-label="Toggle task"
+          >
+            {task.status === 'done' && (
+              <svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+              </svg>
+            )}
+          </button>
+
+          <!-- Priority Badge -->
+          <span class={`h-2 w-2 flex-shrink-0 rounded-full ${priorityColors[task.priority] || 'bg-surface-500'}`} title={task.priority}></span>
+
+          <!-- Title -->
+          <span class:list={['flex-1 text-sm font-medium', task.status === 'done' ? 'text-surface-500 line-through' : 'text-surface-200']}>
+            {task.title}
+          </span>
+
+          <!-- Project -->
+          {proj && (
+            <span class="hidden items-center gap-1.5 text-xs text-surface-400 sm:flex">
+              <span class="h-2 w-2 rounded-full" style={`background-color: ${proj.color}`}></span>
+              {proj.title}
+            </span>
+          )}
+
+          <!-- Due Date -->
+          <span class={`hidden text-xs sm:block ${getDueDateClass(task.dueDate)}`}>
+            {formatDate(task.dueDate)}
+          </span>
+
+          <!-- Status -->
+          <span class={`hidden text-xs font-medium md:block ${statusColors[task.status] || 'text-surface-400'}`}>
+            {statusLabels[task.status] || task.status}
+          </span>
+        </div>
+      );
+    })}
+  </div>
+
+  <!-- Empty state shown when filters hide everything -->
+  <div id="empty-state" class="hidden py-12 text-center">
+    <svg class="mx-auto h-12 w-12 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+    <p class="mt-3 text-sm text-surface-400">No tasks match the current filters.</p>
+  </div>
+</DashboardLayout>
+
+<style>
+  .filter-btn {
+    background-color: transparent;
+    color: var(--color-surface-400);
+  }
+  .filter-btn:hover {
+    background-color: var(--color-surface-800);
+    color: var(--color-surface-200);
+  }
+  .filter-btn.active {
+    background-color: var(--color-accent-600);
+    color: white;
+  }
+</style>
+
+<script>
+  // --- Filter logic ---
+  let activeProject = 'all';
+  let activePriority = 'all';
+  let activeStatus = 'all';
+
+  function applyFilters() {
+    const items = document.querySelectorAll('.task-item');
+    let visibleCount = 0;
+    items.forEach((el) => {
+      const item = el as HTMLElement;
+      const matchProject = activeProject === 'all' || item.dataset.project === activeProject;
+      const matchPriority = activePriority === 'all' || item.dataset.priority === activePriority;
+      const matchStatus = activeStatus === 'all' || item.dataset.status === activeStatus;
+      const visible = matchProject && matchPriority && matchStatus;
+      item.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+    const emptyState = document.getElementById('empty-state');
+    if (emptyState) emptyState.style.display = visibleCount === 0 ? '' : 'none';
+    if (emptyState) emptyState.classList.toggle('hidden', visibleCount > 0);
+  }
+
+  // Project filters
+  document.querySelectorAll('.filter-project').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-project').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeProject = (btn as HTMLElement).dataset.project || 'all';
+      applyFilters();
+    });
+  });
+
+  // Priority filters
+  document.querySelectorAll('.filter-priority').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-priority').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      activePriority = (btn as HTMLElement).dataset.priority || 'all';
+      applyFilters();
+    });
+  });
+
+  // Status filters
+  document.querySelectorAll('.filter-status').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-status').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeStatus = (btn as HTMLElement).dataset.status || 'all';
+      applyFilters();
+    });
+  });
+
+  // --- Checkbox toggle ---
+  document.querySelectorAll('.task-checkbox').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const taskItem = btn.closest('.task-item') as HTMLElement;
+      if (!taskItem) return;
+      const isDone = taskItem.dataset.status === 'done';
+
+      if (isDone) {
+        taskItem.dataset.status = 'todo';
+        taskItem.classList.remove('opacity-50');
+        btn.classList.remove('border-green-500', 'bg-green-500');
+        btn.classList.add('border-surface-600');
+        btn.innerHTML = '';
+        const title = taskItem.querySelector('span.flex-1');
+        if (title) {
+          title.classList.remove('text-surface-500', 'line-through');
+          title.classList.add('text-surface-200');
+        }
+        const statusLabel = taskItem.querySelector('span.hidden.md\\:block:last-child');
+      } else {
+        taskItem.dataset.status = 'done';
+        taskItem.classList.add('opacity-50');
+        btn.classList.remove('border-surface-600');
+        btn.classList.add('border-green-500', 'bg-green-500');
+        btn.innerHTML = '<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>';
+        const title = taskItem.querySelector('span.flex-1');
+        if (title) {
+          title.classList.remove('text-surface-200');
+          title.classList.add('text-surface-500', 'line-through');
+        }
+      }
+      applyFilters();
+    });
+  });
+
+  // --- Add task form toggle ---
+  const addBtn = document.getElementById('add-task-btn');
+  const addForm = document.getElementById('add-task-form');
+  const cancelBtn = document.getElementById('cancel-task-btn');
+
+  addBtn?.addEventListener('click', () => {
+    addForm?.classList.toggle('hidden');
+  });
+
+  cancelBtn?.addEventListener('click', () => {
+    addForm?.classList.add('hidden');
+  });
+
+  // --- Add task submission ---
+  const projectsData = {};
+  const projectSelects = document.querySelectorAll('#task-project-input option');
+  // We'll use inline data for project lookup
+  const projectColors = {
+    'proj-001': '#6366f1',
+    'proj-002': '#f59e0b',
+    'proj-003': '#22c55e',
+    'proj-004': '#ec4899',
+  };
+  const projectTitles = {
+    'proj-001': 'E-Commerce Redesign',
+    'proj-002': 'Brand Identity & Website',
+    'proj-003': 'API Integration Dashboard',
+    'proj-004': 'Restaurant Website',
+  };
+
+  document.getElementById('new-task-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = (document.getElementById('task-title-input') as HTMLInputElement).value;
+    const project = (document.getElementById('task-project-input') as HTMLSelectElement).value;
+    const priority = (document.getElementById('task-priority-input') as HTMLSelectElement).value;
+    const dueDate = (document.getElementById('task-date-input') as HTMLInputElement).value;
+
+    if (!title.trim()) return;
+
+    const priorityColorMap = {
+      high: 'bg-red-500',
+      medium: 'bg-amber-500',
+      low: 'bg-blue-500',
+    };
+
+    let projectHtml = '';
+    if (project && projectColors[project]) {
+      projectHtml = `<span class="hidden items-center gap-1.5 text-xs text-surface-400 sm:flex">
+        <span class="h-2 w-2 rounded-full" style="background-color: ${projectColors[project]}"></span>
+        ${projectTitles[project]}
+      </span>`;
+    }
+
+    let dueDateHtml = '<span class="hidden text-xs text-surface-400 sm:block">No date</span>';
+    if (dueDate) {
+      const d = new Date(dueDate);
+      const formatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      dueDateHtml = `<span class="hidden text-xs text-surface-400 sm:block">${formatted}</span>`;
+    }
+
+    const newTask = document.createElement('div');
+    newTask.className = 'task-item group flex items-center gap-3 rounded-xl border border-surface-700/50 bg-surface-900 p-4 transition-colors hover:border-surface-600';
+    newTask.dataset.project = project || 'none';
+    newTask.dataset.priority = priority;
+    newTask.dataset.status = 'todo';
+    newTask.innerHTML = `
+      <button class="task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-600 hover:border-accent-400 transition-colors" aria-label="Toggle task"></button>
+      <span class="h-2 w-2 flex-shrink-0 rounded-full ${priorityColorMap[priority] || 'bg-surface-500'}" title="${priority}"></span>
+      <span class="flex-1 text-sm font-medium text-surface-200">${title}</span>
+      ${projectHtml}
+      ${dueDateHtml}
+      <span class="hidden text-xs font-medium text-surface-500 md:block">To Do</span>
+    `;
+
+    const taskList = document.getElementById('task-list');
+    if (taskList && taskList.firstChild) {
+      taskList.insertBefore(newTask, taskList.firstChild);
+    } else {
+      taskList?.appendChild(newTask);
+    }
+
+    // Reset form
+    (document.getElementById('task-title-input') as HTMLInputElement).value = '';
+    (document.getElementById('task-project-input') as HTMLSelectElement).value = '';
+    (document.getElementById('task-priority-input') as HTMLSelectElement).value = 'medium';
+    (document.getElementById('task-date-input') as HTMLInputElement).value = '';
+    addForm?.classList.add('hidden');
+
+    // Attach checkbox listener to new task
+    newTask.querySelector('.task-checkbox')?.addEventListener('click', function () {
+      const taskItem = (this as HTMLElement).closest('.task-item') as HTMLElement;
+      if (!taskItem) return;
+      taskItem.dataset.status = 'done';
+      taskItem.classList.add('opacity-50');
+      (this as HTMLElement).classList.remove('border-surface-600');
+      (this as HTMLElement).classList.add('border-green-500', 'bg-green-500');
+      (this as HTMLElement).innerHTML = '<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>';
+      const titleEl = taskItem.querySelector('span.flex-1');
+      if (titleEl) {
+        titleEl.classList.remove('text-surface-200');
+        titleEl.classList.add('text-surface-500', 'line-through');
+      }
+      applyFilters();
+    });
+
+    applyFilters();
+  });
+</script>

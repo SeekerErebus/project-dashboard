@@ -1,0 +1,58 @@
+[
+  {
+    "id": "client-001",
+    "name": "Acme Corp",
+    "contact": "Sarah Chen",
+    "email": "sarah@acmecorp.com",
+    "phone": "(801) 555-0142",
+    "company": "Acme Corporation",
+    "industry": "E-Commerce / Retail",
+    "status": "active",
+    "since": "2025-11-01",
+    "totalRevenue": 7200,
+    "avatar": "SC",
+    "notes": "Great communicator. Prefers Slack for day-to-day, email for formal deliverables. Decision maker — no approval chain needed."
+  },
+  {
+    "id": "client-002",
+    "name": "Meridian Consulting",
+    "contact": "James Walker",
+    "email": "james@meridianconsulting.io",
+    "phone": "(385) 555-0287",
+    "company": "Meridian Consulting Group",
+    "industry": "Business Consulting",
+    "status": "active",
+    "since": "2025-12-15",
+    "totalRevenue": 2200,
+    "avatar": "JW",
+    "notes": "Referred by mutual contact. Detail-oriented, appreciates thorough documentation. Prefers email communication with weekly status updates."
+  },
+  {
+    "id": "client-003",
+    "name": "Pinnacle Labs",
+    "contact": "Dev Patel",
+    "email": "dev.patel@pinnaclelabs.tech",
+    "phone": "(801) 555-0391",
+    "company": "Pinnacle Labs Inc.",
+    "industry": "SaaS / Technology",
+    "status": "active",
+    "since": "2026-01-27",
+    "totalRevenue": 875,
+    "avatar": "DP",
+    "notes": "Technical founder, speaks developer language. Communicates via GitHub issues and Slack. Wants clean code and good documentation over flashy UI."
+  },
+  {
+    "id": "client-004",
+    "name": "The Wild Sage",
+    "contact": "Maria Gonzalez",
+    "email": "maria@thewildsage.com",
+    "phone": "(385) 555-0164",
+    "company": "Wild Sage Restaurant LLC",
+    "industry": "Hospitality / Food",
+    "status": "lead",
+    "since": "2026-01-20",
+    "totalRevenue": 0,
+    "avatar": "MG",
+    "notes": "New restaurant opening in March. Enthusiastic but not tech-savvy — needs clear explanations and visual mockups. Referred by The Craft Table project."
+  }
+]

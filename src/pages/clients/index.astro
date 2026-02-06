@@ -1,0 +1,85 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import clients from '../../data/clients.json';
+import projects from '../../data/projects.json';
+
+const projectsByClient = Object.fromEntries(
+  clients.map((c) => [
+    c.id,
+    projects.filter((p) => p.client === c.id),
+  ])
+);
+
+const avatarColors: Record<string, string> = {
+  'client-001': 'bg-accent-600',
+  'client-002': 'bg-amber-500',
+  'client-003': 'bg-green-500',
+  'client-004': 'bg-red-400',
+};
+---
+
+<DashboardLayout title="Clients" active="clients">
+  <!-- Header -->
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-surface-100">Clients</h1>
+    <p class="mt-1 text-sm text-surface-400">{clients.length} total clients</p>
+  </div>
+
+  <!-- Client Cards Grid -->
+  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    {clients.map((client) => {
+      const clientProjects = projectsByClient[client.id] || [];
+      const activeProjects = clientProjects.filter((p) => p.status === 'in-progress' || p.status === 'review').length;
+      const statusColor = client.status === 'active' ? 'bg-green-500/10 text-green-400' : 'bg-amber-500/10 text-amber-400';
+
+      return (
+        <a
+          href={`/clients/${client.id}/`}
+          class="group rounded-xl border border-surface-700/50 bg-surface-900 p-5 transition-all hover:border-surface-600 hover:bg-surface-800/50"
+        >
+          <!-- Top Row: Avatar + Status -->
+          <div class="mb-4 flex items-start justify-between">
+            <div class="flex items-center gap-3">
+              <div class={`flex h-11 w-11 items-center justify-center rounded-full text-sm font-semibold text-white ${avatarColors[client.id] || 'bg-accent-600'}`}>
+                {client.avatar}
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-surface-100 group-hover:text-accent-400 transition-colors">
+                  {client.contact}
+                </h3>
+                <p class="text-xs text-surface-400">{client.company}</p>
+              </div>
+            </div>
+            <span class={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusColor}`}>
+              {client.status}
+            </span>
+          </div>
+
+          <!-- Email -->
+          <div class="mb-4 flex items-center gap-2 text-xs text-surface-400">
+            <svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+            </svg>
+            <span class="truncate">{client.email}</span>
+          </div>
+
+          <!-- Stats Row -->
+          <div class="flex items-center justify-between border-t border-surface-700/50 pt-4">
+            <div class="text-center">
+              <p class="text-lg font-semibold text-surface-100">{activeProjects}</p>
+              <p class="text-[10px] uppercase tracking-wider text-surface-500">Active</p>
+            </div>
+            <div class="text-center">
+              <p class="text-lg font-semibold text-surface-100">{clientProjects.length}</p>
+              <p class="text-[10px] uppercase tracking-wider text-surface-500">Projects</p>
+            </div>
+            <div class="text-center">
+              <p class="text-lg font-semibold text-surface-100">${client.totalRevenue.toLocaleString()}</p>
+              <p class="text-[10px] uppercase tracking-wider text-surface-500">Revenue</p>
+            </div>
+          </div>
+        </a>
+      );
+    })}
+  </div>
+</DashboardLayout>

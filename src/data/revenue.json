@@ -1,0 +1,18 @@
+{
+  "monthly": [
+    { "month": "Sep 2025", "revenue": 800, "expenses": 120 },
+    { "month": "Oct 2025", "revenue": 1450, "expenses": 200 },
+    { "month": "Nov 2025", "revenue": 2100, "expenses": 180 },
+    { "month": "Dec 2025", "revenue": 1800, "expenses": 250 },
+    { "month": "Jan 2026", "revenue": 3200, "expenses": 320 },
+    { "month": "Feb 2026", "revenue": 1640, "expenses": 150 }
+  ],
+  "summary": {
+    "thisMonth": 1640,
+    "lastMonth": 3200,
+    "thisQuarter": 4840,
+    "ytd": 4840,
+    "pendingInvoices": 2475,
+    "overdueInvoices": 0
+  }
+}

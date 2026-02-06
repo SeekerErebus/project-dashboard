@@ -1,0 +1,94 @@
+[
+  {
+    "id": "proj-001",
+    "title": "E-Commerce Redesign",
+    "client": "client-001",
+    "status": "in-progress",
+    "priority": "high",
+    "budget": 4800,
+    "spent": 2640,
+    "startDate": "2026-01-06",
+    "dueDate": "2026-02-20",
+    "progress": 55,
+    "description": "Complete redesign of Acme Corp's online storefront. Migrating from legacy PHP to modern Astro + React stack with Stripe integration. Includes product catalog, checkout flow, and admin dashboard.",
+    "scope": [
+      "Homepage and product listing redesign",
+      "Product detail pages with image gallery",
+      "Shopping cart and checkout flow",
+      "Stripe payment integration",
+      "Order confirmation and email notifications",
+      "Admin dashboard for inventory management"
+    ],
+    "notes": "Client prefers minimal animations. Must support mobile-first. Existing product data will be exported from WooCommerce as CSV.",
+    "color": "#6366f1"
+  },
+  {
+    "id": "proj-002",
+    "title": "Brand Identity & Website",
+    "client": "client-002",
+    "status": "review",
+    "priority": "medium",
+    "budget": 2200,
+    "spent": 1980,
+    "startDate": "2025-12-15",
+    "dueDate": "2026-02-10",
+    "progress": 90,
+    "description": "Full brand identity package and marketing website for Meridian Consulting. Logo, color palette, typography, business cards, and a 5-page website with blog capability.",
+    "scope": [
+      "Logo design (3 concepts, 2 revision rounds)",
+      "Brand style guide (colors, typography, usage)",
+      "Business card and letterhead design",
+      "5-page marketing website (Home, About, Services, Blog, Contact)",
+      "Blog CMS setup with Markdown content",
+      "SEO optimization and meta tags"
+    ],
+    "notes": "Final review meeting scheduled for Feb 8. Client has approved logo and color palette. Website content is written and loaded. Awaiting final signoff on blog layout.",
+    "color": "#f59e0b"
+  },
+  {
+    "id": "proj-003",
+    "title": "API Integration Dashboard",
+    "client": "client-003",
+    "status": "in-progress",
+    "priority": "high",
+    "budget": 3500,
+    "spent": 875,
+    "startDate": "2026-01-27",
+    "dueDate": "2026-03-14",
+    "progress": 25,
+    "description": "Internal tool for Pinnacle Labs to monitor their microservice APIs. Real-time health checks, latency graphs, error rate tracking, and alerting configuration.",
+    "scope": [
+      "Dashboard overview with service health grid",
+      "Individual service detail view with metrics",
+      "Latency and error rate charts (last 24h, 7d, 30d)",
+      "Alert configuration panel (email + Slack)",
+      "API key management interface",
+      "Export reports as PDF"
+    ],
+    "notes": "Using their existing REST API for data. They'll provide API docs and test credentials by Feb 3. Chart.js for visualizations, WebSocket for real-time updates.",
+    "color": "#22c55e"
+  },
+  {
+    "id": "proj-004",
+    "title": "Restaurant Website",
+    "client": "client-004",
+    "status": "lead",
+    "priority": "low",
+    "budget": 1500,
+    "spent": 0,
+    "startDate": null,
+    "dueDate": "2026-03-28",
+    "progress": 0,
+    "description": "Website for a new farm-to-table restaurant opening in downtown SLC. Menu showcase, reservation system integration (OpenTable), photo gallery, and events page.",
+    "scope": [
+      "Homepage with hero video/image",
+      "Menu page with seasonal categorization",
+      "OpenTable reservation widget integration",
+      "Photo gallery with lightbox",
+      "Events and private dining page",
+      "Google Maps integration and contact info"
+    ],
+    "notes": "Initial discovery call completed. Waiting on signed contract and 50% deposit. Client wants to launch 2 weeks before restaurant opening (mid-March).",
+    "color": "#ec4899"
+  }
+]
