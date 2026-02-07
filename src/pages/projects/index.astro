@@ -1,60 +1,15 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import projects from '../../data/projects.json';
-import clients from '../../data/clients.json';
-
-const columns = [
-  { key: 'lead', label: 'Lead', icon: 'sparkle' },
-  { key: 'in-progress', label: 'In Progress', icon: 'bolt' },
-  { key: 'review', label: 'Review', icon: 'eye' },
-  { key: 'completed', label: 'Completed', icon: 'check' },
-];
-
-const projectsByStatus = Object.fromEntries(
-  columns.map((col) => [col.key, projects.filter((p) => p.status === col.key)])
-);
-
-function getClient(clientId: string) {
-  return clients.find((c) => c.id === clientId);
-}
-
-function formatCurrency(amount: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
-}
-
-function formatDate(dateStr: string | null) {
-  if (!dateStr) return 'TBD';
-  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function priorityClasses(priority: string) {
-  switch (priority) {
-    case 'high': return 'bg-red-500/15 text-red-400';
-    case 'medium': return 'bg-amber-500/15 text-amber-400';
-    case 'low': return 'bg-blue-500/15 text-blue-400';
-    default: return 'bg-surface-500/15 text-surface-400';
-  }
-}
-
-function columnHeaderColor(key: string) {
-  switch (key) {
-    case 'lead': return 'bg-surface-400';
-    case 'in-progress': return 'bg-blue-500';
-    case 'review': return 'bg-amber-500';
-    case 'completed': return 'bg-green-500';
-    default: return 'bg-surface-500';
-  }
-}
 ---
 
 <DashboardLayout title="Projects" active="projects">
   <!-- Page Header -->
-  <div class="mb-8 flex items-center justify-between">
+  <div class="mb-6 flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight text-surface-100">Projects</h1>
-      <p class="mt-1 text-sm text-surface-400">{projects.length} total projects across all stages</p>
+      <h1 class="text-2xl font-bold text-surface-100 tracking-tight">Projects</h1>
+      <p id="project-count" class="mt-1 text-sm text-surface-400">0 total projects across all stages</p>
     </div>
-    <button class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-accent-600 to-accent-700 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-accent-600/20 transition-all hover:shadow-accent-600/30 hover:brightness-110">
+    <button id="new-project-btn" class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-accent-700 fd-glow-accent">
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
       </svg>
@@ -62,97 +17,303 @@ function columnHeaderColor(key: string) {
     </button>
   </div>
 
-  <!-- Kanban Board -->
-  <div class="flex gap-5 overflow-x-auto pb-4 -mx-2 px-2">
-    {columns.map((col) => {
-      const colProjects = projectsByStatus[col.key] || [];
-      return (
-        <div class="flex w-72 min-w-[280px] flex-shrink-0 flex-col">
-          {/* Column Header */}
-          <div class="mb-3 flex items-center gap-2.5 px-1">
-            <span class:list={['h-2.5 w-2.5 rounded-full', columnHeaderColor(col.key)]} />
-            <h2 class="text-sm font-semibold text-surface-200">{col.label}</h2>
-            <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-md bg-surface-800/80 px-1.5 text-[11px] font-medium text-surface-400">
-              {colProjects.length}
-            </span>
-          </div>
-
-          {/* Cards */}
-          <div class="flex flex-col gap-3">
-            {colProjects.map((project) => {
-              const client = getClient(project.client);
-              return (
-                <a href={`/projects/${project.id}/`} class="group block overflow-hidden rounded-xl border border-surface-700/50 bg-surface-800/80 transition-all duration-200 hover:border-surface-600 hover:shadow-lg hover:shadow-surface-950/40 hover:-translate-y-0.5">
-                  {/* Color Bar */}
-                  <div class="h-1" style={`background: linear-gradient(90deg, ${project.color}, ${project.color}88)`} />
-
-                  <div class="p-4">
-                    {/* Client Name */}
-                    {client && (
-                      <p class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-surface-400">
-                        <span class="flex h-4 w-4 items-center justify-center rounded-full bg-surface-700 text-[8px] font-bold text-surface-300">{client.avatar.charAt(0)}</span>
-                        {client.name}
-                      </p>
-                    )}
-
-                    {/* Project Title */}
-                    <h3 class="text-sm font-semibold text-surface-100 group-hover:text-accent-400 transition-colors">{project.title}</h3>
-
-                    {/* Progress Bar */}
-                    <div class="mt-3">
-                      <div class="mb-1.5 flex items-center justify-between">
-                        <span class="text-xs text-surface-400">Progress</span>
-                        <span class="text-xs font-semibold text-surface-300">{project.progress}%</span>
-                      </div>
-                      <div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-700/60">
-                        <div
-                          class="h-full rounded-full transition-all progress-shimmer"
-                          style={`width: ${project.progress}%; background-color: ${project.color}`}
-                        />
-                      </div>
-                    </div>
-
-                    {/* Meta Row */}
-                    <div class="mt-3.5 flex items-center justify-between">
-                      {/* Due Date */}
-                      <div class="flex items-center gap-1.5 text-xs text-surface-400">
-                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-                        </svg>
-                        {formatDate(project.dueDate)}
-                      </div>
-
-                      {/* Priority Badge */}
-                      <span class:list={['inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide', priorityClasses(project.priority)]}>
-                        {project.priority}
-                      </span>
-                    </div>
-
-                    {/* Budget */}
-                    <div class="mt-3 flex items-center justify-between border-t border-surface-700/40 pt-3">
-                      <span class="text-xs text-surface-500">Budget</span>
-                      <span class="text-xs font-medium text-surface-300">
-                        {formatCurrency(project.spent)}<span class="text-surface-500"> / {formatCurrency(project.budget)}</span>
-                      </span>
-                    </div>
-                  </div>
-                </a>
-              );
-            })}
-
-            {colProjects.length === 0 && (
-              <div class="flex h-28 items-center justify-center rounded-xl border border-dashed border-surface-700/40 bg-surface-900/30">
-                <div class="text-center">
-                  <svg class="mx-auto h-6 w-6 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                  </svg>
-                  <p class="mt-1 text-xs text-surface-500">No projects</p>
-                </div>
-              </div>
-            )}
+  <!-- New Project Form (hidden by default) -->
+  <div id="new-project-form" class="mb-6 hidden fd-card bg-surface-900 p-5">
+    <h3 class="mb-4 text-sm font-semibold text-surface-200">New Project</h3>
+    <form id="project-form" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="sm:col-span-2 lg:col-span-3">
+        <input type="text" id="pf-title" placeholder="Project title..." required
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <select id="pf-client"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
+          <option value="">No client</option>
+        </select>
+      </div>
+      <div>
+        <select id="pf-status"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
+          <option value="lead">Lead</option>
+          <option value="in-progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div>
+        <select id="pf-priority"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
+          <option value="medium">Medium Priority</option>
+          <option value="high">High Priority</option>
+          <option value="low">Low Priority</option>
+        </select>
+      </div>
+      <div>
+        <input type="number" id="pf-budget" placeholder="Budget ($)" min="0" step="100"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <input type="date" id="pf-due"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <label class="text-xs text-surface-400">Color</label>
+          <div id="pf-color-swatches" class="flex gap-1.5">
+            <button type="button" data-color="#6366f1" class="color-swatch h-6 w-6 rounded-full bg-[#6366f1] ring-2 ring-white/50 ring-offset-1 ring-offset-surface-900" aria-label="Indigo"></button>
+            <button type="button" data-color="#f59e0b" class="color-swatch h-6 w-6 rounded-full bg-[#f59e0b]" aria-label="Amber"></button>
+            <button type="button" data-color="#22c55e" class="color-swatch h-6 w-6 rounded-full bg-[#22c55e]" aria-label="Green"></button>
+            <button type="button" data-color="#ec4899" class="color-swatch h-6 w-6 rounded-full bg-[#ec4899]" aria-label="Pink"></button>
+            <button type="button" data-color="#3b82f6" class="color-swatch h-6 w-6 rounded-full bg-[#3b82f6]" aria-label="Blue"></button>
+            <button type="button" data-color="#ef4444" class="color-swatch h-6 w-6 rounded-full bg-[#ef4444]" aria-label="Red"></button>
           </div>
         </div>
-      );
-    })}
+      </div>
+      <div class="sm:col-span-2 lg:col-span-3">
+        <textarea id="pf-description" placeholder="Description..." rows="2"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"></textarea>
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit"
+          class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-700">
+          Create
+        </button>
+        <button type="button" id="cancel-project-btn"
+          class="rounded-lg border border-surface-700 px-4 py-2 text-sm font-medium text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">
+          Cancel
+        </button>
+      </div>
+    </form>
   </div>
+
+  <!-- Kanban Board -->
+  <div id="kanban-board" class="flex gap-4 overflow-x-auto pb-4 -mx-1 px-1"></div>
 </DashboardLayout>
+
+<script>
+  import { initStore, getProjects, getClients, addProject, updateProject, deleteProject } from '../../lib/store';
+  import type { Project } from '../../lib/store';
+
+  // Initialize store from API before any reads
+  await initStore();
+
+  const columns = [
+    { key: 'lead', label: 'Lead', color: 'bg-surface-500' },
+    { key: 'active', label: 'Active', color: 'bg-indigo-500' },
+    { key: 'in-progress', label: 'In Progress', color: 'bg-blue-500' },
+    { key: 'review', label: 'Review', color: 'bg-amber-500' },
+    { key: 'completed', label: 'Completed', color: 'bg-green-500' },
+  ] as const;
+
+  const columnColorMap: Record<string, string> = {
+    'lead': 'var(--color-surface-500)',
+    'active': 'var(--color-indigo-500)',
+    'in-progress': 'var(--color-blue-500)',
+    'review': 'var(--color-amber-500)',
+    'completed': 'var(--color-green-500)',
+  };
+
+  function formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  }
+
+  function formatDate(dateStr: string | null): string {
+    if (!dateStr) return 'TBD';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  function priorityClasses(priority: string): string {
+    switch (priority) {
+      case 'high': return 'bg-red-500/15 text-red-400';
+      case 'medium': return 'bg-amber-500/15 text-amber-400';
+      case 'low': return 'bg-blue-500/15 text-blue-400';
+      default: return 'bg-surface-500/15 text-surface-400';
+    }
+  }
+
+  function escapeHtml(str: string): string {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  let selectedColor = '#6366f1';
+
+  function renderBoard() {
+    const projects = getProjects();
+    const clients = getClients();
+    const clientMap = Object.fromEntries(clients.map(c => [c.id, c]));
+    const board = document.getElementById('kanban-board')!;
+
+    const countEl = document.getElementById('project-count');
+    if (countEl) countEl.textContent = `${projects.length} total projects across all stages`;
+
+    const projectsByStatus: Record<string, Project[]> = {};
+    for (const col of columns) {
+      projectsByStatus[col.key] = projects.filter(p => p.status === col.key);
+    }
+
+    board.innerHTML = columns.map(col => {
+      const colProjects = projectsByStatus[col.key] || [];
+      const cards = colProjects.length > 0
+        ? colProjects.map(project => {
+            const client = clientMap[project.client];
+            return `
+              <div class="fd-card group relative overflow-hidden" data-project-id="${project.id}">
+                <div class="h-1.5" style="background: linear-gradient(90deg, ${project.color}, ${project.color}88)"></div>
+                <div class="p-4">
+                  ${client ? `<p class="mb-1 text-xs font-medium text-surface-400">${escapeHtml(client.name)}</p>` : ''}
+                  <a href="/projects/view/?id=${project.id}" class="text-sm font-semibold text-surface-100 hover:text-accent-400 transition-colors">${escapeHtml(project.title)}</a>
+
+                  <div class="mt-3">
+                    <div class="mb-1 flex items-center justify-between">
+                      <span class="text-xs text-surface-400">Progress</span>
+                      <span class="text-xs font-medium text-surface-300">${project.progress}%</span>
+                    </div>
+                    <div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-700/60">
+                      <div class="h-full rounded-full transition-all progress-shimmer" style="width: ${project.progress}%; background-color: ${project.color}"></div>
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex items-center justify-between">
+                    <div class="flex items-center gap-1.5 text-xs text-surface-400">
+                      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+                      </svg>
+                      ${formatDate(project.dueDate)}
+                    </div>
+                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${priorityClasses(project.priority)}">
+                      ${project.priority}
+                    </span>
+                  </div>
+
+                  <div class="mt-2.5 flex items-center justify-between border-t border-surface-700/50 pt-2.5">
+                    <span class="text-xs text-surface-400">Budget</span>
+                    <span class="text-xs font-medium text-surface-300">${formatCurrency(project.spent)} / ${formatCurrency(project.budget)}</span>
+                  </div>
+
+                  <!-- Status + Delete controls -->
+                  <div class="mt-3 flex items-center justify-between border-t border-surface-700/50 pt-3">
+                    <select class="status-select rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 focus:border-accent-500 focus:outline-none" data-id="${project.id}">
+                      <option value="lead" ${project.status === 'lead' ? 'selected' : ''}>Lead</option>
+                      <option value="in-progress" ${project.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
+                      <option value="review" ${project.status === 'review' ? 'selected' : ''}>Review</option>
+                      <option value="completed" ${project.status === 'completed' ? 'selected' : ''}>Completed</option>
+                    </select>
+                    <button class="delete-btn hidden rounded p-1 text-surface-500 transition-colors hover:bg-red-500/15 hover:text-red-400 group-hover:block" data-id="${project.id}" title="Delete project">
+                      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>`;
+          }).join('')
+        : `<div class="flex h-24 items-center justify-center rounded-xl border border-dashed border-surface-700/50 text-xs text-surface-500">No projects</div>`;
+
+      return `
+        <div class="flex w-72 min-w-[280px] flex-shrink-0 flex-col fd-kanban-col" style="--col-color: ${columnColorMap[col.key]}">
+          <div class="mb-3 flex items-center gap-2.5">
+            <span class="h-2.5 w-2.5 rounded-full" style="background-color: ${columnColorMap[col.key]}"></span>
+            <h2 class="text-sm font-semibold text-surface-200">${col.label}</h2>
+            <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-surface-800 px-1.5 text-xs font-medium text-surface-400">${colProjects.length}</span>
+          </div>
+          <div class="flex flex-col gap-3">${cards}</div>
+        </div>`;
+    }).join('');
+
+    // Attach event listeners
+    board.querySelectorAll('.status-select').forEach(sel => {
+      sel.addEventListener('change', (e) => {
+        const target = e.target as HTMLSelectElement;
+        const id = target.dataset.id!;
+        updateProject(id, { status: target.value as Project['status'] });
+        renderBoard();
+      });
+    });
+
+    board.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const id = (e.currentTarget as HTMLElement).dataset.id!;
+        if (confirm('Are you sure you want to delete this project? This will also remove all associated tasks.')) {
+          deleteProject(id);
+          renderBoard();
+        }
+      });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderBoard();
+
+    // Populate client select
+    const clientSelect = document.getElementById('pf-client') as HTMLSelectElement;
+    const clients = getClients();
+    clients.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name;
+      clientSelect.appendChild(opt);
+    });
+
+    // Color swatch selection
+    document.querySelectorAll('.color-swatch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.color-swatch').forEach(b => {
+          b.classList.remove('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
+        });
+        btn.classList.add('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
+        selectedColor = (btn as HTMLElement).dataset.color || '#6366f1';
+      });
+    });
+
+    // Toggle form
+    const formPanel = document.getElementById('new-project-form')!;
+    document.getElementById('new-project-btn')!.addEventListener('click', () => {
+      formPanel.classList.toggle('hidden');
+    });
+    document.getElementById('cancel-project-btn')!.addEventListener('click', () => {
+      formPanel.classList.add('hidden');
+    });
+
+    // Form submission
+    document.getElementById('project-form')!.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = (document.getElementById('pf-title') as HTMLInputElement).value.trim();
+      if (!title) return;
+
+      const client = (document.getElementById('pf-client') as HTMLSelectElement).value;
+      const status = (document.getElementById('pf-status') as HTMLSelectElement).value as Project['status'];
+      const priority = (document.getElementById('pf-priority') as HTMLSelectElement).value as Project['priority'];
+      const budget = parseInt((document.getElementById('pf-budget') as HTMLInputElement).value) || 0;
+      const dueDate = (document.getElementById('pf-due') as HTMLInputElement).value || null;
+      const description = (document.getElementById('pf-description') as HTMLTextAreaElement).value.trim();
+
+      addProject({
+        title,
+        client,
+        status,
+        priority,
+        budget,
+        spent: 0,
+        startDate: new Date().toISOString().split('T')[0],
+        dueDate,
+        progress: 0,
+        description,
+        scope: [],
+        notes: '',
+        color: selectedColor,
+      });
+
+      // Reset form
+      (document.getElementById('project-form') as HTMLFormElement).reset();
+      document.querySelectorAll('.color-swatch').forEach((b, i) => {
+        if (i === 0) b.classList.add('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
+        else b.classList.remove('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
+      });
+      selectedColor = '#6366f1';
+      formPanel.classList.add('hidden');
+      renderBoard();
+    });
+  });
+</script>

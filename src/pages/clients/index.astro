@@ -1,87 +1,267 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import clients from '../../data/clients.json';
-import projects from '../../data/projects.json';
-
-const projectsByClient = Object.fromEntries(
-  clients.map((c) => [
-    c.id,
-    projects.filter((p) => p.client === c.id),
-  ])
-);
-
-const avatarColors: Record<string, string> = {
-  'client-001': 'from-accent-500 to-accent-700',
-  'client-002': 'from-amber-400 to-amber-600',
-  'client-003': 'from-green-400 to-green-600',
-  'client-004': 'from-red-400 to-red-600',
-};
 ---
 
 <DashboardLayout title="Clients" active="clients">
   <!-- Header -->
-  <div class="mb-8">
-    <h1 class="text-2xl font-bold tracking-tight text-surface-100">Clients</h1>
-    <p class="mt-1 text-sm text-surface-400">{clients.length} total clients</p>
+  <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-surface-100 tracking-tight">Clients</h1>
+      <p id="client-summary" class="mt-1 text-sm text-surface-400"></p>
+    </div>
+    <button
+      id="add-client-btn"
+      class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-accent-700 fd-glow-accent"
+    >
+      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+      </svg>
+      Add Client
+    </button>
+  </div>
+
+  <!-- Add Client Form (hidden by default) -->
+  <div id="add-client-form" class="mb-6 hidden fd-card bg-surface-900 p-5">
+    <h3 class="mb-4 text-sm font-semibold text-surface-200">New Client</h3>
+    <form id="new-client-form" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div>
+        <label class="mb-1 block text-xs font-medium text-surface-400">Display Name</label>
+        <input type="text" id="client-name-input" placeholder="Client name..." required
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium text-surface-400">Contact Person</label>
+        <input type="text" id="client-contact-input" placeholder="Contact name..."
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium text-surface-400">Email</label>
+        <input type="email" id="client-email-input" placeholder="email@example.com"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium text-surface-400">Phone</label>
+        <input type="tel" id="client-phone-input" placeholder="(555) 000-0000"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium text-surface-400">Company</label>
+        <input type="text" id="client-company-input" placeholder="Company name..."
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium text-surface-400">Industry</label>
+        <input type="text" id="client-industry-input" placeholder="e.g. Technology"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium text-surface-400">Avatar (2 letters)</label>
+        <input type="text" id="client-avatar-input" placeholder="JD" maxlength="2"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <label class="mb-1 block text-xs font-medium text-surface-400">Status</label>
+        <select id="client-status-input"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
+          <option value="active">Active</option>
+          <option value="lead">Lead</option>
+        </select>
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit"
+          class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-700">
+          Add
+        </button>
+        <button type="button" id="cancel-client-btn"
+          class="rounded-lg border border-surface-700 px-4 py-2 text-sm font-medium text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">
+          Cancel
+        </button>
+      </div>
+    </form>
   </div>
 
   <!-- Client Cards Grid -->
-  <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-    {clients.map((client) => {
-      const clientProjects = projectsByClient[client.id] || [];
-      const activeProjects = clientProjects.filter((p) => p.status === 'in-progress' || p.status === 'review').length;
-      const statusColor = client.status === 'active' ? 'bg-green-500/10 text-green-400 ring-1 ring-green-500/20' : 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20';
+  <div id="client-grid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
 
-      return (
-        <a
-          href={`/clients/${client.id}/`}
-          class="group card-interactive p-5"
-        >
-          {/* Top Row: Avatar + Status */}
+  <!-- Empty state -->
+  <div id="empty-state" class="hidden py-12 text-center">
+    <svg class="mx-auto h-12 w-12 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+    </svg>
+    <p class="mt-3 text-sm text-surface-400">No clients yet. Add your first client to get started.</p>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { initStore, getClients, getProjects, addClient, deleteClient } from '../../lib/store';
+
+  // Initialize store from API before any reads
+  await initStore();
+
+  const avatarGradients = [
+    'from-accent-500 to-accent-700', 'from-amber-400 to-amber-600', 'from-green-400 to-green-600', 'from-red-400 to-red-600',
+    'from-purple-500 to-purple-700', 'from-cyan-400 to-cyan-600', 'from-pink-400 to-pink-600', 'from-teal-400 to-teal-600',
+  ];
+
+  function getAvatarGradient(id: string): string {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    return avatarGradients[Math.abs(hash) % avatarGradients.length];
+  }
+
+  function escapeHtml(str: string): string {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function renderClients() {
+    const clients = getClients();
+    const projects = getProjects();
+    const grid = document.getElementById('client-grid');
+    const emptyState = document.getElementById('empty-state');
+    const summary = document.getElementById('client-summary');
+
+    if (summary) summary.textContent = `${clients.length} total clients`;
+
+    if (!grid) return;
+
+    if (clients.length === 0) {
+      grid.innerHTML = '';
+      if (emptyState) emptyState.classList.remove('hidden');
+      return;
+    }
+
+    if (emptyState) emptyState.classList.add('hidden');
+
+    grid.innerHTML = clients.map(client => {
+      const clientProjects = projects.filter(p => p.client === client.id);
+      const activeProjects = clientProjects.filter(p => p.status === 'in-progress' || p.status === 'review').length;
+      const statusColor = client.status === 'active'
+        ? 'bg-green-500/10 text-green-400 ring-1 ring-green-500/20'
+        : client.status === 'lead'
+          ? 'bg-amber-500/10 text-amber-400 ring-1 ring-amber-500/20'
+          : 'bg-surface-700/50 text-surface-400';
+
+      return `<div class="client-card fd-card-interactive group relative" data-id="${client.id}">
+        <a href="/clients/view/?id=${client.id}" class="block p-5">
+          <!-- Top Row: Avatar + Status -->
           <div class="mb-4 flex items-start justify-between">
             <div class="flex items-center gap-3">
-              <div class={`flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-sm ${avatarColors[client.id] || 'from-accent-500 to-accent-700'}`}>
-                {client.avatar}
+              <div class="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br text-sm font-semibold text-white shadow-sm ${getAvatarGradient(client.id)}">
+                ${escapeHtml(client.avatar || client.name.substring(0, 2).toUpperCase())}
               </div>
               <div>
                 <h3 class="text-sm font-semibold text-surface-100 group-hover:text-accent-400 transition-colors">
-                  {client.contact}
+                  ${escapeHtml(client.contact || client.name)}
                 </h3>
-                <p class="text-xs text-surface-400">{client.company}</p>
+                <p class="text-xs text-surface-400">${escapeHtml(client.company)}</p>
               </div>
             </div>
-            <span class={`inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusColor}`}>
-              {client.status}
+            <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusColor}">
+              ${client.status}
             </span>
           </div>
 
-          {/* Email */}
+          <!-- Email -->
           <div class="mb-4 flex items-center gap-2 text-xs text-surface-400">
             <svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
             </svg>
-            <span class="truncate">{client.email}</span>
+            <span class="truncate">${escapeHtml(client.email || 'No email')}</span>
           </div>
 
-          {/* Stats Row */}
+          <!-- Stats Row -->
           <div class="flex items-center justify-between border-t border-surface-700/40 pt-4">
             <div class="text-center">
-              <p class="text-lg font-bold text-surface-100">{activeProjects}</p>
+              <p class="text-lg font-bold text-surface-100">${activeProjects}</p>
               <p class="text-[10px] uppercase tracking-wider text-surface-500">Active</p>
             </div>
             <div class="h-8 w-px bg-surface-700/40"></div>
             <div class="text-center">
-              <p class="text-lg font-bold text-surface-100">{clientProjects.length}</p>
+              <p class="text-lg font-bold text-surface-100">${clientProjects.length}</p>
               <p class="text-[10px] uppercase tracking-wider text-surface-500">Projects</p>
             </div>
             <div class="h-8 w-px bg-surface-700/40"></div>
             <div class="text-center">
-              <p class="text-lg font-bold text-surface-100">${client.totalRevenue.toLocaleString()}</p>
+              <p class="text-lg font-bold text-surface-100">$${(client.totalRevenue || 0).toLocaleString()}</p>
               <p class="text-[10px] uppercase tracking-wider text-surface-500">Revenue</p>
             </div>
           </div>
         </a>
-      );
-    })}
-  </div>
-</DashboardLayout>
+
+        <!-- Delete button (hover) -->
+        <button class="client-delete-btn absolute right-2 top-2 hidden h-6 w-6 items-center justify-center rounded-lg bg-surface-800 text-surface-500 transition-colors hover:bg-red-500/10 hover:text-red-400 group-hover:flex" aria-label="Delete client" title="Delete client">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+        </button>
+      </div>`;
+    }).join('');
+
+    // Attach delete listeners
+    grid.querySelectorAll('.client-delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const card = btn.closest('.client-card') as HTMLElement;
+        if (!card) return;
+        const id = card.dataset.id!;
+        if (!confirm('Delete this client?')) return;
+        deleteClient(id);
+        renderClients();
+      });
+    });
+  }
+
+  // Add client form toggle
+  const addBtn = document.getElementById('add-client-btn');
+  const addForm = document.getElementById('add-client-form');
+  const cancelBtn = document.getElementById('cancel-client-btn');
+
+  addBtn?.addEventListener('click', () => addForm?.classList.toggle('hidden'));
+  cancelBtn?.addEventListener('click', () => addForm?.classList.add('hidden'));
+
+  // Add client submission
+  document.getElementById('new-client-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = (document.getElementById('client-name-input') as HTMLInputElement).value.trim();
+    const contact = (document.getElementById('client-contact-input') as HTMLInputElement).value.trim();
+    const email = (document.getElementById('client-email-input') as HTMLInputElement).value.trim();
+    const phone = (document.getElementById('client-phone-input') as HTMLInputElement).value.trim();
+    const company = (document.getElementById('client-company-input') as HTMLInputElement).value.trim();
+    const industry = (document.getElementById('client-industry-input') as HTMLInputElement).value.trim();
+    const avatar = (document.getElementById('client-avatar-input') as HTMLInputElement).value.trim().toUpperCase() || name.substring(0, 2).toUpperCase();
+    const status = (document.getElementById('client-status-input') as HTMLSelectElement).value as 'active' | 'lead';
+
+    if (!name) return;
+
+    addClient({
+      name,
+      contact: contact || name,
+      email,
+      phone,
+      company,
+      industry,
+      status,
+      since: new Date().toISOString().split('T')[0],
+      totalRevenue: 0,
+      avatar,
+      notes: '',
+    });
+
+    // Reset form
+    (document.getElementById('client-name-input') as HTMLInputElement).value = '';
+    (document.getElementById('client-contact-input') as HTMLInputElement).value = '';
+    (document.getElementById('client-email-input') as HTMLInputElement).value = '';
+    (document.getElementById('client-phone-input') as HTMLInputElement).value = '';
+    (document.getElementById('client-company-input') as HTMLInputElement).value = '';
+    (document.getElementById('client-industry-input') as HTMLInputElement).value = '';
+    (document.getElementById('client-avatar-input') as HTMLInputElement).value = '';
+    (document.getElementById('client-status-input') as HTMLSelectElement).value = 'active';
+    addForm?.classList.add('hidden');
+
+    renderClients();
+  });
+
+  // Initial render
+  renderClients();
+</script>

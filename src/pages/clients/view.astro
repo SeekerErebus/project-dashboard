@@ -1,0 +1,381 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Client Detail" active="clients">
+  <!-- Back link -->
+  <a href="/clients/" class="mb-4 inline-flex items-center gap-1 text-sm text-surface-400 transition-colors hover:text-accent-400">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+    </svg>
+    Clients
+  </a>
+
+  <!-- Client content (JS-rendered) -->
+  <div id="client-detail"></div>
+
+  <!-- Not found state -->
+  <div id="not-found" class="hidden py-12 text-center">
+    <svg class="mx-auto h-12 w-12 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" />
+    </svg>
+    <p class="mt-3 text-sm text-surface-400">Client not found.</p>
+    <a href="/clients/" class="mt-4 inline-block text-sm text-accent-400 hover:text-accent-300">Back to clients</a>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { initStore, getClient, getProjects, getTasks, updateClient, deleteClient } from '../../lib/store';
+
+  // Initialize store from API before any reads
+  await initStore();
+
+  const params = new URLSearchParams(window.location.search);
+  const clientId = params.get('id');
+
+  if (!clientId) {
+    window.location.href = '/clients/';
+  }
+
+  const avatarBgColors = [
+    'bg-accent-600', 'bg-amber-500', 'bg-green-500', 'bg-red-400',
+    'bg-purple-500', 'bg-cyan-500', 'bg-pink-500', 'bg-teal-500',
+  ];
+
+  function getAvatarColor(id: string): string {
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    return avatarBgColors[Math.abs(hash) % avatarBgColors.length];
+  }
+
+  function escapeHtml(str: string): string {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function formatDate(dateStr: string | null): string {
+    if (!dateStr) return 'N/A';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+  }
+
+  let isEditing = false;
+
+  function render() {
+    if (!clientId) return;
+    const client = getClient(clientId);
+    const detailEl = document.getElementById('client-detail');
+    const notFound = document.getElementById('not-found');
+
+    if (!client) {
+      if (detailEl) detailEl.innerHTML = '';
+      if (notFound) notFound.classList.remove('hidden');
+      return;
+    }
+
+    if (notFound) notFound.classList.add('hidden');
+    if (!detailEl) return;
+
+    const projects = getProjects().filter(p => p.client === clientId);
+    const tasks = getTasks().filter(t => projects.some(p => p.id === t.project));
+    const activeProjects = projects.filter(p => p.status === 'in-progress' || p.status === 'review');
+    const completedProjects = projects.filter(p => p.status === 'completed');
+    const totalBudget = projects.reduce((sum, p) => sum + (p.budget || 0), 0);
+
+    const statusColor = client.status === 'active'
+      ? 'bg-green-500/10 text-green-400'
+      : client.status === 'lead'
+        ? 'bg-amber-500/10 text-amber-400'
+        : 'bg-surface-700/50 text-surface-400';
+
+    if (isEditing) {
+      detailEl.innerHTML = `
+        <div class="mb-6 fd-card bg-surface-900 p-6">
+          <h2 class="mb-4 text-lg font-semibold text-surface-100">Edit Client</h2>
+          <form id="edit-client-form" class="grid gap-4 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-xs font-medium text-surface-400">Display Name</label>
+              <input type="text" id="edit-name" value="${escapeHtml(client.name)}" required
+                class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-surface-400">Contact Person</label>
+              <input type="text" id="edit-contact" value="${escapeHtml(client.contact)}"
+                class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-surface-400">Email</label>
+              <input type="email" id="edit-email" value="${escapeHtml(client.email)}"
+                class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-surface-400">Phone</label>
+              <input type="tel" id="edit-phone" value="${escapeHtml(client.phone)}"
+                class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-surface-400">Company</label>
+              <input type="text" id="edit-company" value="${escapeHtml(client.company)}"
+                class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-surface-400">Industry</label>
+              <input type="text" id="edit-industry" value="${escapeHtml(client.industry)}"
+                class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-surface-400">Avatar (2 letters)</label>
+              <input type="text" id="edit-avatar" value="${escapeHtml(client.avatar)}" maxlength="2"
+                class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-medium text-surface-400">Status</label>
+              <select id="edit-status"
+                class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
+                <option value="active" ${client.status === 'active' ? 'selected' : ''}>Active</option>
+                <option value="lead" ${client.status === 'lead' ? 'selected' : ''}>Lead</option>
+                <option value="inactive" ${client.status === 'inactive' ? 'selected' : ''}>Inactive</option>
+              </select>
+            </div>
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-xs font-medium text-surface-400">Notes</label>
+              <textarea id="edit-notes" rows="3"
+                class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">${escapeHtml(client.notes || '')}</textarea>
+            </div>
+            <div class="flex gap-2 sm:col-span-2">
+              <button type="submit"
+                class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-700">
+                Save
+              </button>
+              <button type="button" id="cancel-edit-btn"
+                class="rounded-lg border border-surface-700 px-4 py-2 text-sm font-medium text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>`;
+
+      document.getElementById('edit-client-form')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        updateClient(clientId!, {
+          name: (document.getElementById('edit-name') as HTMLInputElement).value.trim(),
+          contact: (document.getElementById('edit-contact') as HTMLInputElement).value.trim(),
+          email: (document.getElementById('edit-email') as HTMLInputElement).value.trim(),
+          phone: (document.getElementById('edit-phone') as HTMLInputElement).value.trim(),
+          company: (document.getElementById('edit-company') as HTMLInputElement).value.trim(),
+          industry: (document.getElementById('edit-industry') as HTMLInputElement).value.trim(),
+          avatar: (document.getElementById('edit-avatar') as HTMLInputElement).value.trim().toUpperCase(),
+          status: (document.getElementById('edit-status') as HTMLSelectElement).value as 'active' | 'lead' | 'inactive',
+          notes: (document.getElementById('edit-notes') as HTMLTextAreaElement).value,
+        });
+        isEditing = false;
+        render();
+      });
+
+      document.getElementById('cancel-edit-btn')?.addEventListener('click', () => {
+        isEditing = false;
+        render();
+      });
+
+      return;
+    }
+
+    // View mode
+    const projectListHtml = projects.length > 0
+      ? projects.map(p => {
+          const pStatusColors: Record<string, string> = {
+            'in-progress': 'bg-blue-500/10 text-blue-400',
+            'review': 'bg-amber-500/10 text-amber-400',
+            'completed': 'bg-green-500/10 text-green-400',
+            'lead': 'bg-surface-700/50 text-surface-400',
+          };
+          return `<a href="/projects/view/?id=${p.id}" class="flex items-center justify-between rounded-lg border border-surface-700/50 bg-surface-800/30 p-3 transition-colors hover:border-surface-600">
+            <div class="flex items-center gap-2">
+              <span class="h-2.5 w-2.5 rounded-full" style="background-color: ${p.color}"></span>
+              <span class="text-sm font-medium text-surface-200">${escapeHtml(p.title)}</span>
+            </div>
+            <span class="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${pStatusColors[p.status] || 'bg-surface-700/50 text-surface-400'}">${p.status}</span>
+          </a>`;
+        }).join('')
+      : '<p class="text-sm text-surface-500">No projects yet.</p>';
+
+    detailEl.innerHTML = `
+      <!-- Header -->
+      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex h-14 w-14 items-center justify-center rounded-full text-lg font-bold text-white ${getAvatarColor(client.id)}">
+            ${escapeHtml(client.avatar || client.name.substring(0, 2).toUpperCase())}
+          </div>
+          <div>
+            <h1 class="text-2xl font-bold text-surface-100">${escapeHtml(client.name)}</h1>
+            <div class="mt-1 flex items-center gap-2">
+              <span class="text-sm text-surface-400">${escapeHtml(client.company)}</span>
+              <span class="inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${statusColor}">${client.status}</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex gap-2">
+          <button id="edit-btn"
+            class="inline-flex items-center gap-2 rounded-lg border border-surface-700 px-4 py-2 text-sm font-medium text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+            </svg>
+            Edit
+          </button>
+          <button id="delete-btn"
+            class="inline-flex items-center gap-2 rounded-lg border border-red-500/30 px-4 py-2 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/10">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+            </svg>
+            Delete
+          </button>
+        </div>
+      </div>
+
+      <!-- Two columns -->
+      <div class="grid gap-6 lg:grid-cols-3">
+        <!-- Left column (2/3) -->
+        <div class="space-y-6 lg:col-span-2">
+          <!-- Contact Info -->
+          <div class="fd-card bg-surface-900 p-5">
+            <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Contact Info</h2>
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-800 text-surface-400">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-xs text-surface-500">Email</p>
+                  ${client.email ? `<a href="mailto:${escapeHtml(client.email)}" class="text-sm text-accent-400 hover:text-accent-300">${escapeHtml(client.email)}</a>` : '<p class="text-sm text-surface-400">Not set</p>'}
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-800 text-surface-400">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-xs text-surface-500">Phone</p>
+                  ${client.phone ? `<a href="tel:${escapeHtml(client.phone)}" class="text-sm text-accent-400 hover:text-accent-300">${escapeHtml(client.phone)}</a>` : '<p class="text-sm text-surface-400">Not set</p>'}
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-800 text-surface-400">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-xs text-surface-500">Contact</p>
+                  <p class="text-sm text-surface-200">${escapeHtml(client.contact || 'Not set')}</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-surface-800 text-surface-400">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="text-xs text-surface-500">Industry</p>
+                  <p class="text-sm text-surface-200">${escapeHtml(client.industry || 'Not set')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Projects -->
+          <div class="fd-card bg-surface-900 p-5">
+            <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Projects</h2>
+            <div class="space-y-2">
+              ${projectListHtml}
+            </div>
+          </div>
+
+          <!-- Notes -->
+          <div class="fd-card bg-surface-900 p-5">
+            <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Notes</h2>
+            <p class="text-sm text-surface-300 whitespace-pre-wrap">${client.notes ? escapeHtml(client.notes) : 'No notes yet. Click Edit to add notes.'}</p>
+          </div>
+        </div>
+
+        <!-- Right column (1/3) -->
+        <div class="space-y-6">
+          <!-- Revenue -->
+          <div class="fd-card bg-surface-900 p-5">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Revenue</h2>
+            <p class="text-3xl font-bold text-surface-100">$${(client.totalRevenue || 0).toLocaleString()}</p>
+            <p class="mt-1 text-xs text-surface-500">Total lifetime revenue</p>
+          </div>
+
+          <!-- Stats -->
+          <div class="fd-card bg-surface-900 p-5">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Stats</h2>
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-surface-400">Total Projects</span>
+                <span class="text-sm font-semibold text-surface-200">${projects.length}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-surface-400">Active</span>
+                <span class="text-sm font-semibold text-blue-400">${activeProjects.length}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-surface-400">Completed</span>
+                <span class="text-sm font-semibold text-green-400">${completedProjects.length}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-surface-400">Total Budget</span>
+                <span class="text-sm font-semibold text-surface-200">$${totalBudget.toLocaleString()}</span>
+              </div>
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-surface-400">Open Tasks</span>
+                <span class="text-sm font-semibold text-surface-200">${tasks.filter(t => t.status !== 'done').length}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Client Since -->
+          <div class="fd-card bg-surface-900 p-5">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Client Since</h2>
+            <p class="text-sm font-medium text-surface-200">${formatDate(client.since)}</p>
+          </div>
+
+          <!-- Quick Actions -->
+          <div class="fd-card bg-surface-900 p-5">
+            <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Quick Actions</h2>
+            <div class="space-y-2">
+              ${client.email ? `<a href="mailto:${escapeHtml(client.email)}" class="flex w-full items-center gap-2 rounded-lg border border-surface-700 px-3 py-2 text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" /></svg>
+                Send Email
+              </a>` : ''}
+              ${client.phone ? `<a href="tel:${escapeHtml(client.phone)}" class="flex w-full items-center gap-2 rounded-lg border border-surface-700 px-3 py-2 text-sm text-surface-300 transition-colors hover:bg-surface-800 hover:text-surface-100">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" /></svg>
+                Call
+              </a>` : ''}
+            </div>
+          </div>
+        </div>
+      </div>`;
+
+    // Attach edit button
+    document.getElementById('edit-btn')?.addEventListener('click', () => {
+      isEditing = true;
+      render();
+    });
+
+    // Attach delete button
+    document.getElementById('delete-btn')?.addEventListener('click', () => {
+      if (!confirm('Delete this client? This cannot be undone.')) return;
+      deleteClient(clientId!);
+      window.location.href = '/clients/';
+    });
+  }
+
+  // Initial render
+  render();
+</script>

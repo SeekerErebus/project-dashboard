@@ -47,17 +47,15 @@
   --color-surface-950: #ffffff;
 }
 
-/* Adjust shadows for light mode */
-[data-theme="light"] .card-interactive:hover,
+/* Adjust scrollbar and shadows for light mode */
+[data-theme="light"] .fd-card:hover {
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
+}
+
 [data-theme="light"] .fd-card-interactive:hover {
   box-shadow:
     0 4px 24px -4px rgba(0, 0, 0, 0.08),
     0 0 0 1px color-mix(in srgb, var(--color-accent-500) 10%, transparent);
-}
-
-[data-theme="light"] .card:hover,
-[data-theme="light"] .fd-card:hover {
-  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
 }
 
 @layer base {
@@ -264,46 +262,7 @@
 }
 
 @layer utilities {
-  /* Legacy card classes — kept for backward compatibility with existing pages */
-  .card {
-    border-radius: 0.75rem;
-    border: 1px solid rgba(51, 65, 85, 0.5);
-    background: linear-gradient(
-      145deg,
-      rgba(30, 41, 59, 0.6) 0%,
-      rgba(15, 23, 42, 0.8) 100%
-    );
-    backdrop-filter: blur(12px);
-  }
-
-  .card-solid {
-    border-radius: 0.75rem;
-    border: 1px solid rgba(51, 65, 85, 0.5);
-    background: var(--color-surface-900);
-  }
-
-  .card-interactive {
-    border-radius: 0.75rem;
-    border: 1px solid rgba(51, 65, 85, 0.5);
-    background: linear-gradient(
-      145deg,
-      rgba(30, 41, 59, 0.6) 0%,
-      rgba(15, 23, 42, 0.8) 100%
-    );
-    backdrop-filter: blur(12px);
-    transition: all 0.2s ease;
-  }
-
-  .card-interactive:hover {
-    border-color: rgba(51, 65, 85, 0.8);
-    box-shadow:
-      0 4px 24px -4px rgba(0, 0, 0, 0.3),
-      0 0 0 1px rgba(99, 102, 241, 0.05);
-    transform: translateY(-1px);
-  }
-
   /* Glow utility for accent buttons */
-  .glow-accent,
   .fd-glow-accent {
     box-shadow: 0 0 12px -2px color-mix(in srgb, var(--color-accent-500) 40%, transparent);
   }
@@ -316,23 +275,7 @@
     background-clip: text;
   }
 
-  /* Smooth fade-in for page content */
-  .fade-in {
-    animation: fadeIn 0.3s ease-out;
-  }
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: translateY(6px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  /* Pulse dot animation */
+  /* Pulse dot animation — used for active indicators */
   .pulse-dot {
     animation: pulseDot 2s ease-in-out infinite;
   }
@@ -348,7 +291,7 @@
     }
   }
 
-  /* Progress bar shimmer */
+  /* Progress bar shimmer effect */
   .progress-shimmer {
     position: relative;
     overflow: hidden;

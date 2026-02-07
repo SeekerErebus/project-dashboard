@@ -1,103 +1,29 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import tasks from '../../data/tasks.json';
-import projects from '../../data/projects.json';
-import timeEntries from '../../data/time-entries.json';
-
-const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
-
-const today = new Date();
-today.setHours(0, 0, 0, 0);
-const threeDaysFromNow = new Date(today);
-threeDaysFromNow.setDate(threeDaysFromNow.getDate() + 3);
-
-// Sort: done tasks at bottom, then by due date ascending
-const sortedTasks = [...tasks].sort((a, b) => {
-  if (a.status === 'done' && b.status !== 'done') return 1;
-  if (a.status !== 'done' && b.status === 'done') return -1;
-  const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
-  const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
-  return dateA - dateB;
-});
-
-function getDueDateClass(dateStr: string | null): string {
-  if (!dateStr) return 'text-surface-400';
-  const due = new Date(dateStr);
-  due.setHours(0, 0, 0, 0);
-  if (due < today) return 'text-red-400';
-  if (due <= threeDaysFromNow) return 'text-amber-400';
-  return 'text-surface-400';
-}
-
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return 'No date';
-  const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-// Pre-compute time per task from seed data
-const timeByTask = new Map<string, number>();
-timeEntries.forEach((e) => {
-  timeByTask.set(e.taskId, (timeByTask.get(e.taskId) || 0) + e.durationMinutes);
-});
-
-function formatDuration(minutes: number): string {
-  const h = Math.floor(minutes / 60);
-  const m = minutes % 60;
-  if (h === 0) return `${m}m`;
-  if (m === 0) return `${h}h`;
-  return `${h}h ${m}m`;
-}
-
-const activeTasks = tasks.filter((t) => t.status !== 'done').length;
-const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.project))];
-
-const priorityColors = {
-  high: 'bg-red-500',
-  medium: 'bg-amber-500',
-  low: 'bg-blue-500',
-};
-const statusLabels = {
-  'todo': 'To Do',
-  'in-progress': 'In Progress',
-  'done': 'Done',
-};
-const statusColors = {
-  'todo': 'text-surface-500',
-  'in-progress': 'text-blue-400',
-  'done': 'text-green-400',
-};
-
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 ---
 
 <DashboardLayout title="Tasks" active="tasks">
   <!-- Header -->
-  <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight text-surface-100">Tasks</h1>
-      <p class="mt-1 text-sm text-surface-400">{activeTasks} active tasks, {tasks.length} total</p>
+      <h1 class="text-2xl font-bold text-surface-100 tracking-tight">Tasks</h1>
+      <p id="task-summary" class="mt-1 text-sm text-surface-400"></p>
     </div>
-    <button
-      id="add-task-btn"
-      class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-accent-600 to-accent-700 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-accent-600/20 transition-all hover:shadow-accent-600/30 hover:brightness-110"
-    >
-      <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-      </svg>
-      Add Task
-    </button>
+    <div class="flex items-center gap-2">
+      <button
+        id="add-task-btn"
+        class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-medium text-white transition-all hover:bg-accent-700 fd-glow-accent"
+      >
+        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        Add Task
+      </button>
+    </div>
   </div>
 
   <!-- Add Task Form (hidden by default) -->
-  <div id="add-task-form" class="mb-6 hidden card p-5">
+  <div id="add-task-form" class="mb-6 hidden fd-card bg-surface-900 p-5">
     <h3 class="mb-4 text-sm font-semibold text-surface-200">New Task</h3>
     <form id="new-task-form" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div class="sm:col-span-2 lg:col-span-4">
@@ -106,24 +32,21 @@ function escapeHtml(str: string): string {
           id="task-title-input"
           placeholder="Task title..."
           required
-          class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 transition-all focus:border-accent-500/60 focus:bg-surface-800/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
         />
       </div>
       <div>
         <select
           id="task-project-input"
-          class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-2 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:bg-surface-800/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
         >
           <option value="">No project</option>
-          {projects.map((p) => (
-            <option value={p.id}>{p.title}</option>
-          ))}
         </select>
       </div>
       <div>
         <select
           id="task-priority-input"
-          class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-2 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:bg-surface-800/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
         >
           <option value="medium">Medium Priority</option>
           <option value="high">High Priority</option>
@@ -134,8 +57,16 @@ function escapeHtml(str: string): string {
         <input
           type="date"
           id="task-date-input"
-          class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-2 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:bg-surface-800/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
         />
+      </div>
+      <div class="sm:col-span-2 lg:col-span-4">
+        <textarea
+          id="task-prompt-input"
+          placeholder="Agent prompt (instructions for Claude Code agents)..."
+          rows="3"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+        ></textarea>
       </div>
       <div class="flex items-end gap-2">
         <button
@@ -156,21 +87,12 @@ function escapeHtml(str: string): string {
   </div>
 
   <!-- Filter Bar -->
-  <div class="mb-4 flex flex-wrap gap-3 rounded-xl border border-surface-700/30 bg-surface-900/80 p-3 sm:p-4">
+  <div id="filter-bar" class="mb-4 flex flex-wrap gap-3 rounded-xl border border-surface-700/30 bg-surface-900/80 p-3 sm:p-4">
     <!-- Project Filter -->
     <div class="flex flex-wrap items-center gap-2">
       <span class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Project</span>
-      <div class="flex flex-wrap gap-1">
+      <div id="project-filters" class="flex flex-wrap gap-1">
         <button class="fd-filter-chip filter-project active" data-project="all">All</button>
-        {uniqueProjects.map((pid) => {
-          const proj = projectMap[pid!];
-          return proj ? (
-            <button class="fd-filter-chip filter-project" data-project={pid}>
-              <span class="mr-1 inline-block h-2 w-2 rounded-full" style={`background-color: ${proj.color}`}></span>
-              {proj.title}
-            </button>
-          ) : null;
-        })}
       </div>
     </div>
 
@@ -199,406 +121,95 @@ function escapeHtml(str: string): string {
         <button class="fd-filter-chip filter-status" data-status="done">Done</button>
       </div>
     </div>
+
+    <div class="hidden h-6 w-px bg-surface-700/50 sm:block"></div>
+
+    <!-- Assignee Filter -->
+    <div class="flex flex-wrap items-center gap-2">
+      <span class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Assignee</span>
+      <div class="flex gap-1">
+        <button class="fd-filter-chip filter-assignee active" data-assignee="all">All</button>
+        <button class="fd-filter-chip filter-assignee" data-assignee="mine">My Tasks</button>
+      </div>
+    </div>
   </div>
 
   <!-- Task List -->
-  <div id="task-list" class="space-y-2">
-    {sortedTasks.map((task) => {
-      const proj = task.project ? projectMap[task.project] : null;
-      const taskMinutes = timeByTask.get(task.id) || 0;
-      const priorityDotClass = task.priority === 'high'
-        ? `${priorityColors[task.priority] || 'bg-surface-500'} fd-priority-high`
-        : (priorityColors[task.priority] || 'bg-surface-500');
-      return (
-        <div
-          class:list={[
-            'task-item fd-task-row group cursor-pointer',
-            task.status === 'done' && 'opacity-50',
-          ]}
-          data-task-id={task.id}
-          data-project={task.project || 'none'}
-          data-priority={task.priority}
-          data-status={task.status}
-          data-description={escapeHtml(task.description || '')}
-          data-due-date={task.dueDate || ''}
-          data-title={escapeHtml(task.title)}
-          data-seed-minutes={taskMinutes}
-        >
-          <div class="flex items-center gap-3 px-4 py-3.5">
-            <!-- Checkbox -->
-            <button
-              class:list={[
-                'task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all',
-                task.status === 'done'
-                  ? 'border-green-500 bg-green-500'
-                  : 'border-surface-600 hover:border-accent-400',
-              ]}
-              aria-label="Toggle task"
-            >
-              {task.status === 'done' && (
-                <svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                </svg>
-              )}
-            </button>
+  <div id="task-list" class="space-y-2"></div>
 
-            <!-- Priority Badge -->
-            <span class={`h-2 w-2 flex-shrink-0 rounded-full ${priorityDotClass}`} title={task.priority}></span>
-
-            <!-- Title (clickable for detail) -->
-            <span
-              class:list={[
-                'task-title-btn flex-1 cursor-pointer text-left text-sm font-medium transition-colors truncate hover:text-accent-400',
-                task.status === 'done' ? 'text-surface-500 line-through' : 'text-surface-200',
-              ]}
-              role="button"
-              tabindex="0"
-            >
-              {task.title}
-            </span>
-
-            <!-- Time Logged Badge -->
-            <span class="task-time-badge hidden items-center gap-1 rounded-md bg-surface-800/80 px-2 py-1 text-xs font-medium text-surface-400 sm:flex" data-task-id={task.id}>
-              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-              </svg>
-              <span class="time-display">{taskMinutes > 0 ? formatDuration(taskMinutes) : '0m'}</span>
-            </span>
-
-            <!-- Project -->
-            {proj && (
-              <span class="hidden items-center gap-1.5 text-xs text-surface-400 sm:flex">
-                <span class="h-2 w-2 rounded-full" style={`background-color: ${proj.color}`}></span>
-                {proj.title}
-              </span>
-            )}
-
-            <!-- Due Date -->
-            <span class={`hidden text-xs sm:block ${getDueDateClass(task.dueDate)}`}>
-              {formatDate(task.dueDate)}
-            </span>
-
-            <!-- Status -->
-            <span class={`hidden rounded-full px-2 py-0.5 text-[10px] font-semibold md:inline-block ${statusColors[task.status] || 'text-surface-400'}`}>
-              {statusLabels[task.status] || task.status}
-            </span>
-          </div>
-        </div>
-      );
-    })}
-  </div>
-
-  <!-- Empty state shown when filters hide everything -->
+  <!-- Empty state -->
   <div id="empty-state" class="hidden py-12 text-center">
     <svg class="mx-auto h-12 w-12 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
       <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
     </svg>
-    <p class="mt-3 text-sm text-surface-400">No tasks match the current filters.</p>
+    <p id="empty-state-text" class="mt-3 text-sm text-surface-400">No tasks yet. Add your first task to get started.</p>
   </div>
 
-  <!-- Task Detail Slide-Over Panel -->
-  <div id="task-detail-overlay" class="fixed inset-0 z-50 hidden bg-surface-950/60 backdrop-blur-sm" aria-hidden="true"></div>
-  <div id="task-detail-panel" class="fixed inset-y-0 right-0 z-50 hidden w-full max-w-md transform translate-x-full border-l border-surface-700/50 bg-surface-900 shadow-2xl shadow-black/40 transition-transform duration-300 ease-in-out overflow-y-auto">
-    <!-- Panel Header -->
-    <div class="sticky top-0 z-10 flex items-center justify-between border-b border-surface-700/50 bg-surface-900/95 backdrop-blur-sm px-6 py-4">
-      <h2 id="detail-panel-title" class="text-base font-semibold text-surface-100 truncate pr-4">Task Detail</h2>
-      <button id="close-detail-btn" class="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">
+  <!-- Task Detail Panel (slide-out drawer) -->
+  <div id="detail-overlay" class="fixed inset-0 z-40 hidden bg-black/60 backdrop-blur-sm transition-opacity"></div>
+  <div id="detail-panel" class="fixed right-0 top-0 z-50 hidden h-full w-full max-w-lg translate-x-full overflow-y-auto border-l border-surface-700/50 bg-surface-900 shadow-2xl shadow-black/40 transition-transform duration-200 ease-out sm:w-[32rem]">
+    <div class="flex items-center justify-between border-b border-surface-700/50 px-6 py-4">
+      <h2 class="text-lg font-bold text-surface-100">Task Details</h2>
+      <button id="detail-close-btn" class="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">
         <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
       </button>
     </div>
-
-    <!-- Panel Content -->
-    <div class="px-6 py-5 space-y-6">
-      <!-- Task Info -->
-      <div>
-        <div class="flex items-center gap-2 mb-2">
-          <span id="detail-priority-badge" class="h-2.5 w-2.5 rounded-full"></span>
-          <span id="detail-status" class="text-xs font-medium"></span>
-        </div>
-        <p id="detail-description" class="text-sm text-surface-400 leading-relaxed"></p>
-        <div id="detail-due-date" class="mt-2 flex items-center gap-1.5 text-xs text-surface-500">
-          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-          </svg>
-          <span id="detail-due-date-text"></span>
-        </div>
-      </div>
-
-      <!-- Timer Section -->
-      <div class="card p-4">
-        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-500">Timer</h3>
-        <div class="flex items-center justify-between">
-          <div>
-            <p id="detail-timer-display" class="text-2xl font-bold text-surface-100">00:00:00</p>
-            <p id="detail-timer-status" class="mt-0.5 text-xs text-surface-500">Stopped</p>
-          </div>
-          <div class="flex gap-2">
-            <button
-              id="detail-timer-toggle"
-              class="flex h-10 w-10 items-center justify-center rounded-full bg-accent-600 text-white shadow-lg shadow-accent-600/20 transition-all hover:bg-accent-700 hover:shadow-accent-600/30"
-              aria-label="Start timer"
-            >
-              <svg id="timer-play-icon" class="h-4 w-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
-              </svg>
-              <svg id="timer-stop-icon" class="hidden h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                <path fill-rule="evenodd" d="M4.5 7.5a3 3 0 0 1 3-3h9a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-9Z" clip-rule="evenodd" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Total Time Logged -->
-      <div class="card p-4">
-        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-500">Time Logged</h3>
-        <p id="detail-total-time" class="text-xl font-bold text-surface-100">0m</p>
-
-        <!-- Recent entries for this task -->
-        <div id="detail-entries-list" class="mt-3 space-y-2">
-        </div>
-      </div>
-
-      <!-- Manual Time Entry -->
-      <div class="card p-4">
-        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-500">Log Time Manually</h3>
-        <form id="detail-manual-form" class="flex gap-2">
-          <div class="flex-1">
-            <label class="mb-1 block text-[10px] font-medium text-surface-500">Hours</label>
-            <input type="number" id="detail-hours" min="0" max="24" value="0" class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-1.5 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40" />
-          </div>
-          <div class="flex-1">
-            <label class="mb-1 block text-[10px] font-medium text-surface-500">Minutes</label>
-            <input type="number" id="detail-minutes" min="0" max="59" value="30" class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-1.5 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40" />
-          </div>
-          <div class="flex items-end">
-            <button type="submit" class="rounded-lg bg-accent-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-700">
-              Log
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+    <div id="detail-content" class="px-6 py-5"></div>
   </div>
 </DashboardLayout>
 
 <style>
-  /* Filter chip styles now handled by fd-filter-chip in global.css */
-  #task-detail-panel.open {
-    transform: translateX(0);
-  }
+  /* Filter styles now handled by fd-filter-chip in global.css */
 </style>
 
 <script>
-  // ── localStorage Keys ──────────────────────────────────────────────────
-  const STORAGE_KEY = 'fd-time-entries';
-  const TIMER_KEY = 'fd-active-timer';
+  import { initStore, getTasks, getTask, getProjects, addTask, updateTask, deleteTask, getCurrentUser, isAssignedToCurrentUser } from '../../lib/store';
+  import type { Task } from '../../lib/store';
 
-  interface TimeEntry {
-    id: string;
-    taskId: string;
-    projectId: string | null;
-    description: string;
-    startTime: string;
-    endTime: string;
-    durationMinutes: number;
-    manual: boolean;
-  }
+  // Initialize store from API before any reads
+  await initStore();
 
-  interface ActiveTimer {
-    taskId: string;
-    projectId: string | null;
-    startTime: string;
-  }
-
-  // Task-to-project mapping
-  const taskProjectMap: Record<string, string | null> = {
-    'task-001': 'proj-001',
-    'task-002': 'proj-001',
-    'task-003': 'proj-001',
-    'task-004': 'proj-002',
-    'task-005': 'proj-002',
-    'task-006': 'proj-003',
-    'task-007': 'proj-003',
-    'task-008': 'proj-003',
-    'task-009': 'proj-004',
-    'task-010': null,
-    'task-011': 'proj-001',
-    'task-012': 'proj-003',
+  const priorityColors: Record<string, string> = {
+    high: 'bg-red-500',
+    medium: 'bg-amber-500',
+    low: 'bg-blue-500',
   };
 
-  function getStoredEntries(): TimeEntry[] {
-    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-    catch { return []; }
-  }
+  const statusLabels: Record<string, string> = {
+    'todo': 'To Do',
+    'in-progress': 'In Progress',
+    'done': 'Done',
+  };
 
-  function saveEntries(entries: TimeEntry[]) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  }
+  const statusColors: Record<string, string> = {
+    'todo': 'text-surface-500',
+    'in-progress': 'text-blue-400',
+    'done': 'text-green-400',
+  };
 
-  function getActiveTimer(): ActiveTimer | null {
-    try {
-      const d = localStorage.getItem(TIMER_KEY);
-      return d ? JSON.parse(d) : null;
-    } catch { return null; }
-  }
-
-  function setActiveTimer(timer: ActiveTimer | null) {
-    if (timer) localStorage.setItem(TIMER_KEY, JSON.stringify(timer));
-    else localStorage.removeItem(TIMER_KEY);
-  }
-
-  function formatDuration(minutes: number): string {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-    if (h === 0) return `${m}m`;
-    if (m === 0) return `${h}h`;
-    return `${h}h ${m}m`;
-  }
-
-  function formatTimerDisplay(ms: number): string {
-    const totalSec = Math.floor(ms / 1000);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    const s = totalSec % 60;
-    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  }
-
-  // ── Get total time for a task (seed + localStorage) ────────────────────
-  function getTaskTotalMinutes(taskId: string, seedMinutes: number): number {
-    const stored = getStoredEntries().filter((e) => e.taskId === taskId);
-    const storedMinutes = stored.reduce((sum, e) => sum + e.durationMinutes, 0);
-    return seedMinutes + storedMinutes;
-  }
-
-  function getTaskEntries(taskId: string): { description: string; durationMinutes: number; manual: boolean; startTime: string }[] {
-    return getStoredEntries().filter((e) => e.taskId === taskId);
-  }
-
-  // ── Update time badges on task cards ───────────────────────────────────
-  function updateTimeBadges() {
-    document.querySelectorAll('.task-time-badge').forEach((badge) => {
-      const el = badge as HTMLElement;
-      const taskId = el.dataset.taskId;
-      if (!taskId) return;
-      const taskItem = el.closest('.task-item') as HTMLElement;
-      const seedMinutes = parseInt(taskItem?.dataset.seedMinutes || '0');
-      const total = getTaskTotalMinutes(taskId, seedMinutes);
-      const display = el.querySelector('.time-display');
-      if (display) display.textContent = total > 0 ? formatDuration(total) : '0m';
-    });
-  }
-
-  // ── Filter logic ───────────────────────────────────────────────────────
   let activeProject = 'all';
   let activePriority = 'all';
   let activeStatus = 'all';
+  let activeAssignee = 'all';
 
-  function applyFilters() {
-    const items = document.querySelectorAll('.task-item');
-    let visibleCount = 0;
-    items.forEach((el) => {
-      const item = el as HTMLElement;
-      const matchProject = activeProject === 'all' || item.dataset.project === activeProject;
-      const matchPriority = activePriority === 'all' || item.dataset.priority === activePriority;
-      const matchStatus = activeStatus === 'all' || item.dataset.status === activeStatus;
-      const visible = matchProject && matchPriority && matchStatus;
-      item.style.display = visible ? '' : 'none';
-      if (visible) visibleCount++;
-    });
-    const emptyState = document.getElementById('empty-state');
-    if (emptyState) emptyState.style.display = visibleCount === 0 ? '' : 'none';
-    if (emptyState) emptyState.classList.toggle('hidden', visibleCount > 0);
+  function getDueDateClass(dateStr: string | null): string {
+    if (!dateStr) return 'text-surface-400';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const threeDays = new Date(today);
+    threeDays.setDate(threeDays.getDate() + 3);
+    const due = new Date(dateStr);
+    due.setHours(0, 0, 0, 0);
+    if (due < today) return 'text-red-400';
+    if (due <= threeDays) return 'text-amber-400';
+    return 'text-surface-400';
   }
 
-  document.querySelectorAll('.filter-project').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-project').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeProject = (btn as HTMLElement).dataset.project || 'all';
-      applyFilters();
-    });
-  });
-
-  document.querySelectorAll('.filter-priority').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-priority').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      activePriority = (btn as HTMLElement).dataset.priority || 'all';
-      applyFilters();
-    });
-  });
-
-  document.querySelectorAll('.filter-status').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-status').forEach((b) => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeStatus = (btn as HTMLElement).dataset.status || 'all';
-      applyFilters();
-    });
-  });
-
-  // ── Checkbox toggle ────────────────────────────────────────────────────
-  document.querySelectorAll('.task-checkbox').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const taskItem = btn.closest('.task-item') as HTMLElement;
-      if (!taskItem) return;
-      const isDone = taskItem.dataset.status === 'done';
-
-      if (isDone) {
-        taskItem.dataset.status = 'todo';
-        taskItem.classList.remove('opacity-50');
-        btn.classList.remove('border-green-500', 'bg-green-500');
-        btn.classList.add('border-surface-600');
-        btn.innerHTML = '';
-        const title = taskItem.querySelector('.task-title-btn');
-        if (title) {
-          title.classList.remove('text-surface-500', 'line-through');
-          title.classList.add('text-surface-200');
-        }
-      } else {
-        taskItem.dataset.status = 'done';
-        taskItem.classList.add('opacity-50');
-        btn.classList.remove('border-surface-600');
-        btn.classList.add('border-green-500', 'bg-green-500');
-        btn.innerHTML = '<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>';
-        const title = taskItem.querySelector('.task-title-btn');
-        if (title) {
-          title.classList.remove('text-surface-200');
-          title.classList.add('text-surface-500', 'line-through');
-        }
-      }
-      applyFilters();
-    });
-  });
-
-  // ── Add task form toggle ───────────────────────────────────────────────
-  const addBtn = document.getElementById('add-task-btn');
-  const addForm = document.getElementById('add-task-form');
-  const cancelBtn = document.getElementById('cancel-task-btn');
-
-  addBtn?.addEventListener('click', () => {
-    addForm?.classList.toggle('hidden');
-  });
-
-  cancelBtn?.addEventListener('click', () => {
-    addForm?.classList.add('hidden');
-  });
-
-  // ── Add task submission ────────────────────────────────────────────────
-  const projectColors: Record<string, string> = {
-    'proj-001': '#6366f1',
-    'proj-002': '#f59e0b',
-    'proj-003': '#22c55e',
-    'proj-004': '#ec4899',
-  };
-  const projectTitles: Record<string, string> = {
-    'proj-001': 'E-Commerce Redesign',
-    'proj-002': 'Brand Identity & Website',
-    'proj-003': 'API Integration Dashboard',
-    'proj-004': 'Restaurant Website',
-  };
+  function formatDate(dateStr: string | null): string {
+    if (!dateStr) return 'No date';
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
 
   function escapeHtml(str: string): string {
     const div = document.createElement('div');
@@ -606,394 +217,508 @@ function escapeHtml(str: string): string {
     return div.innerHTML;
   }
 
-  document.getElementById('new-task-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const title = (document.getElementById('task-title-input') as HTMLInputElement).value;
-    const project = (document.getElementById('task-project-input') as HTMLSelectElement).value;
-    const priority = (document.getElementById('task-priority-input') as HTMLSelectElement).value;
-    const dueDate = (document.getElementById('task-date-input') as HTMLInputElement).value;
+  function renderProjectFilters() {
+    const projects = getProjects();
+    const tasks = getTasks();
+    const taskProjectRefs = new Set(tasks.filter(t => t.project).map(t => t.project));
+    const container = document.getElementById('project-filters');
+    if (!container) return;
 
-    if (!title.trim()) return;
+    let html = '<button class="fd-filter-chip filter-project active" data-project="all">All</button>';
+    projects.forEach(p => {
+      if (taskProjectRefs.has(p.id) || taskProjectRefs.has(p.title)) {
+        html += `<button class="fd-filter-chip filter-project" data-project="${p.id}">
+          <span class="mr-1 inline-block h-2 w-2 rounded-full" style="background-color: ${p.color}"></span>
+          ${escapeHtml(p.title)}
+        </button>`;
+      }
+    });
+    container.innerHTML = html;
 
-    const priorityColorMap: Record<string, string> = {
-      high: 'bg-red-500',
-      medium: 'bg-amber-500',
-      low: 'bg-blue-500',
-    };
+    // Re-attach filter listeners
+    container.querySelectorAll('.filter-project').forEach(btn => {
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.filter-project').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        activeProject = (btn as HTMLElement).dataset.project || 'all';
+        applyFilters();
+      });
+    });
+  }
 
-    const priorityDotClass = priority === 'high'
-      ? `${priorityColorMap[priority] || 'bg-surface-500'} fd-priority-high`
-      : (priorityColorMap[priority] || 'bg-surface-500');
+  function renderProjectSelect() {
+    const projects = getProjects();
+    const select = document.getElementById('task-project-input') as HTMLSelectElement;
+    if (!select) return;
+    select.innerHTML = '<option value="">No project</option>';
+    projects.forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = p.title;
+      select.appendChild(opt);
+    });
+  }
 
-    let projectHtml = '';
-    if (project && projectColors[project]) {
-      projectHtml = `<span class="hidden items-center gap-1.5 text-xs text-surface-400 sm:flex">
-        <span class="h-2 w-2 rounded-full" style="background-color: ${projectColors[project]}"></span>
-        ${escapeHtml(projectTitles[project])}
-      </span>`;
-    }
+  function renderTasks() {
+    const tasks = getTasks();
+    const projects = getProjects();
+    const projectMap = Object.fromEntries([
+      ...projects.map(p => [p.id, p]),
+      ...projects.map(p => [p.title, p]),
+    ]);
 
-    let dueDateHtml = '<span class="hidden text-xs text-surface-400 sm:block">No date</span>';
-    if (dueDate) {
-      const d = new Date(dueDate);
-      const formatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      dueDateHtml = `<span class="hidden text-xs text-surface-400 sm:block">${escapeHtml(formatted)}</span>`;
-    }
+    const sorted = [...tasks].sort((a, b) => {
+      if (a.status === 'done' && b.status !== 'done') return 1;
+      if (a.status !== 'done' && b.status === 'done') return -1;
+      const dateA = a.dueDate ? new Date(a.dueDate).getTime() : Infinity;
+      const dateB = b.dueDate ? new Date(b.dueDate).getTime() : Infinity;
+      return dateA - dateB;
+    });
 
-    const taskId = 'task-new-' + Date.now();
-    const newTask = document.createElement('div');
-    newTask.className = 'task-item fd-task-row group cursor-pointer';
-    newTask.dataset.taskId = taskId;
-    newTask.dataset.project = project || 'none';
-    newTask.dataset.priority = priority;
-    newTask.dataset.status = 'todo';
-    newTask.dataset.description = '';
-    newTask.dataset.dueDate = dueDate || '';
-    newTask.dataset.title = escapeHtml(title);
-    newTask.dataset.seedMinutes = '0';
-
-    // Also register in project map for timer
-    if (project) taskProjectMap[taskId] = project;
-
-    newTask.innerHTML = `
-      <div class="flex items-center gap-3 px-4 py-3.5">
-        <button class="task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-600 hover:border-accent-400 transition-all" aria-label="Toggle task"></button>
-        <span class="h-2 w-2 flex-shrink-0 rounded-full ${priorityDotClass}" title="${escapeHtml(priority)}"></span>
-        <span class="task-title-btn flex-1 cursor-pointer text-left text-sm font-medium text-surface-200 hover:text-accent-400 transition-colors truncate" role="button" tabindex="0">${escapeHtml(title)}</span>
-        <span class="task-time-badge hidden items-center gap-1 rounded-md bg-surface-800/80 px-2 py-1 text-xs font-medium text-surface-400 sm:flex" data-task-id="${taskId}">
-          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-          <span class="time-display">0m</span>
-        </span>
-        ${projectHtml}
-        ${dueDateHtml}
-        <span class="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold text-surface-500 md:inline-block">To Do</span>
-      </div>
-    `;
+    const activeTasks = tasks.filter(t => t.status !== 'done').length;
+    const summary = document.getElementById('task-summary');
+    if (summary) summary.textContent = `${activeTasks} active tasks, ${tasks.length} total`;
 
     const taskList = document.getElementById('task-list');
-    if (taskList && taskList.firstChild) {
-      taskList.insertBefore(newTask, taskList.firstChild);
-    } else {
-      taskList?.appendChild(newTask);
+    const emptyState = document.getElementById('empty-state');
+    const emptyText = document.getElementById('empty-state-text');
+
+    if (!taskList) return;
+
+    if (sorted.length === 0) {
+      taskList.innerHTML = '';
+      if (emptyState) emptyState.classList.remove('hidden');
+      if (emptyText) emptyText.textContent = 'No tasks yet. Add your first task to get started.';
+      return;
     }
+
+    if (emptyState) emptyState.classList.add('hidden');
+
+    taskList.innerHTML = sorted.map(task => {
+      const proj = task.project ? projectMap[task.project] : null;
+      const isDone = task.status === 'done';
+      const checkboxClasses = isDone
+        ? 'border-green-500 bg-green-500'
+        : 'border-surface-600 hover:border-accent-400';
+      const checkSvg = isDone
+        ? '<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>'
+        : '';
+      const titleClasses = isDone ? 'text-surface-500 line-through' : 'text-surface-200';
+      const opacityClass = isDone ? 'opacity-50' : '';
+
+      const projectHtml = proj
+        ? `<span class="hidden items-center gap-1.5 text-xs text-surface-400 sm:flex">
+            <span class="h-2 w-2 rounded-full" style="background-color: ${proj.color}"></span>
+            ${escapeHtml(proj.title)}
+          </span>`
+        : '';
+
+      // Prompt indicator — small icon if task has agent instructions
+      const promptHtml = task.prompt
+        ? `<span class="flex-shrink-0 text-accent-400" title="Has agent prompt">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z" />
+            </svg>
+          </span>`
+        : '';
+
+      // Assignee badge or Claim button
+      const currentUser = getCurrentUser();
+      const assigneeHtml = task.assignee
+        ? `<span class="hidden flex-shrink-0 items-center rounded-full bg-accent-600/15 px-2 py-0.5 text-[10px] font-semibold text-accent-400 sm:flex">${escapeHtml(task.assignee)}</span>`
+        : `<button class="task-claim-btn hidden flex-shrink-0 items-center text-xs text-accent-400 hover:bg-accent-600/15 px-2 py-0.5 rounded-full transition-colors sm:flex" data-id="${task.id}">Claim</button>`;
+
+      // Done permission guard: disable checkbox if assigned to someone else
+      const canToggleDone = !task.assignee || isAssignedToCurrentUser(task);
+      const checkboxDisabledAttr = canToggleDone ? '' : ' title="Only the assignee can mark this done"';
+      const checkboxDisabledClass = canToggleDone ? '' : ' opacity-30 cursor-not-allowed';
+
+      const priorityDotClass = task.priority === 'high' ? `${priorityColors[task.priority] || 'bg-surface-500'} fd-priority-high` : (priorityColors[task.priority] || 'bg-surface-500');
+
+      return `<div
+        class="task-item fd-task-row group ${opacityClass}"
+        data-project="${proj ? proj.id : (task.project || 'none')}"
+        data-priority="${task.priority}"
+        data-status="${task.status}"
+        data-assignee="${escapeHtml(task.assignee)}"
+        data-id="${task.id}"
+      >
+        <div class="flex items-center gap-3 px-4 py-3.5">
+          <button class="task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all ${checkboxClasses}${checkboxDisabledClass}"${checkboxDisabledAttr} aria-label="Toggle task">${checkSvg}</button>
+          <span class="h-2 w-2 flex-shrink-0 rounded-full ${priorityDotClass}" title="${task.priority}"></span>
+          <span class="task-title-btn flex-1 cursor-pointer text-left text-sm font-medium transition-colors hover:text-accent-400 ${titleClasses}" role="button" tabindex="0" data-id="${task.id}">${escapeHtml(task.title)}</span>
+          ${promptHtml}
+          ${assigneeHtml}
+          ${projectHtml}
+          <span class="hidden text-xs sm:block ${getDueDateClass(task.dueDate)}">${formatDate(task.dueDate)}</span>
+          <span class="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold md:inline-block ${statusColors[task.status] || 'text-surface-400'}">${statusLabels[task.status] || task.status}</span>
+          <button class="task-delete-btn ml-1 hidden h-5 w-5 flex-shrink-0 items-center justify-center rounded text-surface-600 transition-colors hover:bg-red-500/10 hover:text-red-400 group-hover:flex" aria-label="Delete task" title="Delete task">
+            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+          </button>
+        </div>
+      </div>`;
+    }).join('');
+
+    // Attach checkbox listeners (with permission guard)
+    taskList.querySelectorAll('.task-checkbox').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const taskItem = btn.closest('.task-item') as HTMLElement;
+        if (!taskItem) return;
+        const id = taskItem.dataset.id!;
+        const task = getTask(id);
+        if (!task) return;
+        // Guard: only assignee or unassigned can toggle done
+        if (task.assignee && !isAssignedToCurrentUser(task)) return;
+        const isDone = taskItem.dataset.status === 'done';
+        updateTask(id, { status: isDone ? 'todo' : 'done' });
+        renderTasks();
+        renderProjectFilters();
+        applyFilters();
+      });
+    });
+
+    // Attach claim button listeners
+    taskList.querySelectorAll('.task-claim-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = (btn as HTMLElement).dataset.id!;
+        const user = getCurrentUser();
+        updateTask(id, { assignee: user.assigneeId });
+        renderTasks();
+        renderProjectFilters();
+        applyFilters();
+      });
+    });
+
+    // Attach delete listeners
+    taskList.querySelectorAll('.task-delete-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const taskItem = btn.closest('.task-item') as HTMLElement;
+        if (!taskItem) return;
+        const id = taskItem.dataset.id!;
+        if (!confirm('Delete this task?')) return;
+        deleteTask(id);
+        renderTasks();
+        renderProjectFilters();
+        applyFilters();
+      });
+    });
+
+    // Attach title click → open detail panel
+    taskList.querySelectorAll('.task-title-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const id = (btn as HTMLElement).dataset.id!;
+        openDetailPanel(id);
+      });
+    });
+
+    applyFilters();
+  }
+
+  function applyFilters() {
+    const items = document.querySelectorAll('.task-item');
+    const currentUser = getCurrentUser();
+    let visibleCount = 0;
+    items.forEach(el => {
+      const item = el as HTMLElement;
+      const matchProject = activeProject === 'all' || item.dataset.project === activeProject;
+      const matchPriority = activePriority === 'all' || item.dataset.priority === activePriority;
+      const matchStatus = activeStatus === 'all' || item.dataset.status === activeStatus;
+      let matchAssignee = true;
+      if (activeAssignee === 'mine') {
+        const assignee = (item.dataset.assignee || '').toLowerCase().trim();
+        matchAssignee = assignee === currentUser.assigneeId || assignee === currentUser.name.toLowerCase();
+      }
+      const visible = matchProject && matchPriority && matchStatus && matchAssignee;
+      item.style.display = visible ? '' : 'none';
+      if (visible) visibleCount++;
+    });
+    const emptyState = document.getElementById('empty-state');
+    const emptyText = document.getElementById('empty-state-text');
+    const tasks = getTasks();
+    if (tasks.length === 0) {
+      if (emptyState) emptyState.classList.remove('hidden');
+      if (emptyText) emptyText.textContent = 'No tasks yet. Add your first task to get started.';
+    } else if (visibleCount === 0) {
+      if (emptyState) emptyState.classList.remove('hidden');
+      if (emptyText) emptyText.textContent = 'No tasks match the current filters.';
+    } else {
+      if (emptyState) emptyState.classList.add('hidden');
+    }
+  }
+
+  // Priority filters
+  document.querySelectorAll('.filter-priority').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-priority').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activePriority = (btn as HTMLElement).dataset.priority || 'all';
+      applyFilters();
+    });
+  });
+
+  // Status filters
+  document.querySelectorAll('.filter-status').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-status').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeStatus = (btn as HTMLElement).dataset.status || 'all';
+      applyFilters();
+    });
+  });
+
+  // Add task form toggle
+  const addBtn = document.getElementById('add-task-btn');
+  const addForm = document.getElementById('add-task-form');
+  const cancelBtn = document.getElementById('cancel-task-btn');
+
+  addBtn?.addEventListener('click', () => addForm?.classList.toggle('hidden'));
+  cancelBtn?.addEventListener('click', () => addForm?.classList.add('hidden'));
+
+  // Assignee filters
+  document.querySelectorAll('.filter-assignee').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-assignee').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      activeAssignee = (btn as HTMLElement).dataset.assignee || 'all';
+      applyFilters();
+    });
+  });
+
+  // Add task submission
+  document.getElementById('new-task-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = (document.getElementById('task-title-input') as HTMLInputElement).value.trim();
+    const project = (document.getElementById('task-project-input') as HTMLSelectElement).value;
+    const priority = (document.getElementById('task-priority-input') as HTMLSelectElement).value as 'high' | 'medium' | 'low';
+    const dueDate = (document.getElementById('task-date-input') as HTMLInputElement).value;
+    const prompt = (document.getElementById('task-prompt-input') as HTMLTextAreaElement).value.trim();
+
+    if (!title) return;
+
+    addTask({
+      title,
+      project: project || null,
+      priority,
+      status: 'todo',
+      dueDate: dueDate || '',
+      description: '',
+      prompt,
+    });
 
     // Reset form
     (document.getElementById('task-title-input') as HTMLInputElement).value = '';
     (document.getElementById('task-project-input') as HTMLSelectElement).value = '';
     (document.getElementById('task-priority-input') as HTMLSelectElement).value = 'medium';
     (document.getElementById('task-date-input') as HTMLInputElement).value = '';
+    (document.getElementById('task-prompt-input') as HTMLTextAreaElement).value = '';
     addForm?.classList.add('hidden');
 
-    // Attach listeners to new task
-    attachTaskListeners(newTask);
-    applyFilters();
+    renderTasks();
+    renderProjectFilters();
+    renderProjectSelect();
   });
 
-  // ── Task Detail Panel ──────────────────────────────────────────────────
-  const detailOverlay = document.getElementById('task-detail-overlay');
-  const detailPanel = document.getElementById('task-detail-panel');
-  const closeDetailBtn = document.getElementById('close-detail-btn');
-  const detailTitle = document.getElementById('detail-panel-title');
-  const detailPriority = document.getElementById('detail-priority-badge');
-  const detailStatus = document.getElementById('detail-status');
-  const detailDescription = document.getElementById('detail-description');
-  const detailDueDateText = document.getElementById('detail-due-date-text');
-  const detailTimerDisplay = document.getElementById('detail-timer-display');
-  const detailTimerStatus = document.getElementById('detail-timer-status');
-  const detailTimerToggle = document.getElementById('detail-timer-toggle');
-  const timerPlayIcon = document.getElementById('timer-play-icon');
-  const timerStopIcon = document.getElementById('timer-stop-icon');
-  const detailTotalTime = document.getElementById('detail-total-time');
-  const detailEntriesList = document.getElementById('detail-entries-list');
+  // ── Detail panel ──────────────────────────────────────────────────────────
 
-  let currentTaskId: string | null = null;
-  let timerInterval: ReturnType<typeof setInterval> | null = null;
+  const detailPanel = document.getElementById('detail-panel')!;
+  const detailOverlay = document.getElementById('detail-overlay')!;
+  const detailContent = document.getElementById('detail-content')!;
 
-  const priorityLabels: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
-  const priorityColorClasses: Record<string, string> = { high: 'bg-red-500', medium: 'bg-amber-500', low: 'bg-blue-500' };
-  const statusLabelMap: Record<string, string> = { 'todo': 'To Do', 'in-progress': 'In Progress', 'done': 'Done' };
-  const statusColorMap: Record<string, string> = { 'todo': 'text-surface-500', 'in-progress': 'text-blue-400', 'done': 'text-green-400' };
+  const priorityBadgeClasses: Record<string, string> = {
+    high: 'bg-red-500/15 text-red-400',
+    medium: 'bg-amber-500/15 text-amber-400',
+    low: 'bg-blue-500/15 text-blue-400',
+  };
 
-  function openDetailPanel(taskItem: HTMLElement) {
-    const taskId = taskItem.dataset.taskId || '';
-    currentTaskId = taskId;
+  const statusBadgeClasses: Record<string, string> = {
+    'todo': 'bg-surface-500/15 text-surface-400',
+    'in-progress': 'bg-blue-500/15 text-blue-400',
+    'done': 'bg-green-500/15 text-green-400',
+  };
 
-    // Populate panel
-    if (detailTitle) detailTitle.textContent = taskItem.dataset.title || 'Task';
-    if (detailPriority) {
-      detailPriority.className = `h-2.5 w-2.5 rounded-full ${priorityColorClasses[taskItem.dataset.priority || 'medium'] || 'bg-surface-500'}`;
-    }
-    if (detailStatus) {
-      const status = taskItem.dataset.status || 'todo';
-      detailStatus.textContent = `${priorityLabels[taskItem.dataset.priority || 'medium']} Priority / ${statusLabelMap[status] || status}`;
-      detailStatus.className = `text-xs font-medium ${statusColorMap[status] || 'text-surface-400'}`;
-    }
-    if (detailDescription) {
-      detailDescription.textContent = taskItem.dataset.description || 'No description.';
-    }
-    if (detailDueDateText) {
-      const dd = taskItem.dataset.dueDate;
-      detailDueDateText.textContent = dd ? new Date(dd).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'No due date';
-    }
+  const inputClasses = 'w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500';
 
-    // Update time info
-    updateDetailTimeInfo(taskId, parseInt(taskItem.dataset.seedMinutes || '0'));
-
-    // Update timer state
-    updateDetailTimerState(taskId);
-
-    // Show panel
-    detailOverlay?.classList.remove('hidden');
-    detailPanel?.classList.remove('hidden');
+  function showPanel() {
+    detailOverlay.classList.remove('hidden');
+    detailPanel.classList.remove('hidden');
     requestAnimationFrame(() => {
-      detailPanel?.classList.add('open');
+      detailPanel.classList.remove('translate-x-full');
+    });
+  }
+
+  function openDetailPanel(taskId: string) {
+    const task = getTask(taskId);
+    if (!task) return;
+
+    const projects = getProjects();
+    const proj = task.project ? projects.find(p => p.id === task.project) : null;
+
+    const fields: Array<{ label: string; value: string; html?: string }> = [
+      { label: 'ID', value: '', html: `<code class="rounded bg-surface-800 px-1.5 py-0.5 text-xs text-surface-300">${escapeHtml(task.id)}</code>` },
+      { label: 'Status', value: '', html: `<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${statusBadgeClasses[task.status] || ''}">${statusLabels[task.status] || task.status}</span>` },
+      { label: 'Priority', value: '', html: `<span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold uppercase ${priorityBadgeClasses[task.priority] || ''}">${task.priority}</span>` },
+      { label: 'Project', value: proj ? proj.title : 'None', html: proj ? `<span class="inline-flex items-center gap-1.5 text-sm text-surface-200"><span class="h-2 w-2 rounded-full" style="background-color: ${proj.color}"></span>${escapeHtml(proj.title)}</span>` : undefined },
+      { label: 'Due Date', value: task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'No date' },
+      { label: 'Assignee', value: task.assignee || 'Unassigned' },
+    ];
+    if (task.completedAt) {
+      fields.push({ label: 'Completed', value: new Date(task.completedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) });
+    }
+
+    detailContent.innerHTML = `
+      <div class="mb-6 flex items-start justify-between gap-4">
+        <h3 class="text-xl font-semibold text-surface-100">${escapeHtml(task.title)}</h3>
+        <button id="detail-edit-btn" class="flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-surface-700 px-3 py-1.5 text-xs font-medium text-surface-400 transition-colors hover:border-surface-600 hover:text-surface-200" data-id="${task.id}">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+          </svg>
+          Edit
+        </button>
+      </div>
+
+      <div class="mb-6 space-y-3">
+        ${fields.map(f => `
+          <div class="flex items-start justify-between gap-4">
+            <span class="flex-shrink-0 text-xs font-medium uppercase tracking-wider text-surface-500">${f.label}</span>
+            <span class="text-right text-sm text-surface-300">${f.html || escapeHtml(f.value)}</span>
+          </div>
+        `).join('')}
+      </div>
+
+      ${task.description ? `
+        <div class="mb-6">
+          <h4 class="mb-2 text-xs font-medium uppercase tracking-wider text-surface-500">Description</h4>
+          <p class="text-sm leading-relaxed text-surface-300">${escapeHtml(task.description)}</p>
+        </div>
+      ` : ''}
+
+      <div class="mb-2">
+        <h4 class="mb-2 text-xs font-medium uppercase tracking-wider text-surface-500">Agent Prompt</h4>
+        ${task.prompt
+          ? `<div class="rounded-lg border border-surface-700/50 bg-surface-800/50 p-4"><pre class="whitespace-pre-wrap text-sm leading-relaxed text-surface-300">${escapeHtml(task.prompt)}</pre></div>`
+          : `<p class="text-sm italic text-surface-500">No prompt — this is a human-only task.</p>`
+        }
+      </div>
+    `;
+
+    document.getElementById('detail-edit-btn')!.addEventListener('click', () => {
+      openEditPanel(task.id);
     });
 
-    // Start timer display update
-    if (timerInterval) clearInterval(timerInterval);
-    timerInterval = setInterval(() => {
-      if (currentTaskId) updateDetailTimerState(currentTaskId);
-    }, 1000);
+    showPanel();
+  }
+
+  function openEditPanel(taskId: string) {
+    const task = getTask(taskId);
+    if (!task) return;
+
+    const projects = getProjects();
+    const projectOptions = projects.map(p =>
+      `<option value="${p.id}" ${task.project === p.id ? 'selected' : ''}>${escapeHtml(p.title)}</option>`
+    ).join('');
+
+    detailContent.innerHTML = `
+      <form id="edit-task-form" class="space-y-4">
+        <div>
+          <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-surface-500">Title</label>
+          <input type="text" id="ef-title" value="${escapeHtml(task.title)}" required class="${inputClasses}" />
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-surface-500">Status</label>
+            <select id="ef-status" class="${inputClasses}">
+              <option value="todo" ${task.status === 'todo' ? 'selected' : ''}>To Do</option>
+              <option value="in-progress" ${task.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
+              <option value="done" ${task.status === 'done' ? 'selected' : ''}>Done</option>
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-surface-500">Priority</label>
+            <select id="ef-priority" class="${inputClasses}">
+              <option value="high" ${task.priority === 'high' ? 'selected' : ''}>High</option>
+              <option value="medium" ${task.priority === 'medium' ? 'selected' : ''}>Medium</option>
+              <option value="low" ${task.priority === 'low' ? 'selected' : ''}>Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-surface-500">Project</label>
+            <select id="ef-project" class="${inputClasses}">
+              <option value="">No project</option>
+              ${projectOptions}
+            </select>
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-surface-500">Due Date</label>
+            <input type="date" id="ef-due" value="${task.dueDate || ''}" class="${inputClasses}" />
+          </div>
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-surface-500">Assignee</label>
+          <input type="text" id="ef-assignee" value="${escapeHtml(task.assignee)}" placeholder="e.g. human, agent-1" class="${inputClasses}" />
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-surface-500">Description</label>
+          <textarea id="ef-description" rows="2" placeholder="Description..." class="${inputClasses}">${escapeHtml(task.description)}</textarea>
+        </div>
+        <div>
+          <label class="mb-1 block text-xs font-medium uppercase tracking-wider text-surface-500">Agent Prompt</label>
+          <textarea id="ef-prompt" rows="6" placeholder="Instructions for Claude Code agents..." class="${inputClasses}">${escapeHtml(task.prompt)}</textarea>
+        </div>
+        <div class="flex items-center gap-2 pt-2">
+          <button type="submit" class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-700">Save</button>
+          <button type="button" id="edit-cancel-btn" class="rounded-lg border border-surface-700 px-4 py-2 text-sm font-medium text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">Cancel</button>
+        </div>
+        <p class="text-xs text-surface-500">ID: <code class="rounded bg-surface-800 px-1 py-0.5 text-surface-400">${escapeHtml(task.id)}</code></p>
+      </form>
+    `;
+
+    document.getElementById('edit-cancel-btn')!.addEventListener('click', () => {
+      openDetailPanel(taskId);
+    });
+
+    document.getElementById('edit-task-form')!.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = (document.getElementById('ef-title') as HTMLInputElement).value.trim();
+      if (!title) return;
+
+      updateTask(taskId, {
+        title,
+        status: (document.getElementById('ef-status') as HTMLSelectElement).value as Task['status'],
+        priority: (document.getElementById('ef-priority') as HTMLSelectElement).value as Task['priority'],
+        project: (document.getElementById('ef-project') as HTMLSelectElement).value || null,
+        dueDate: (document.getElementById('ef-due') as HTMLInputElement).value || '',
+        assignee: (document.getElementById('ef-assignee') as HTMLInputElement).value.trim(),
+        description: (document.getElementById('ef-description') as HTMLTextAreaElement).value.trim(),
+        prompt: (document.getElementById('ef-prompt') as HTMLTextAreaElement).value.trim(),
+      });
+
+      renderTasks();
+      renderProjectFilters();
+      openDetailPanel(taskId);
+    });
   }
 
   function closeDetailPanel() {
-    detailPanel?.classList.remove('open');
+    detailPanel.classList.add('translate-x-full');
+    // Wait for transition to finish, then hide
     setTimeout(() => {
-      detailOverlay?.classList.add('hidden');
-      detailPanel?.classList.add('hidden');
-    }, 300);
-    if (timerInterval) clearInterval(timerInterval);
-    currentTaskId = null;
-    updateTimeBadges();
+      detailPanel.classList.add('hidden');
+      detailOverlay.classList.add('hidden');
+    }, 200);
   }
 
-  function updateDetailTimeInfo(taskId: string, seedMinutes: number) {
-    const total = getTaskTotalMinutes(taskId, seedMinutes);
-    if (detailTotalTime) detailTotalTime.textContent = formatDuration(total);
-
-    // Show entries
-    if (detailEntriesList) {
-      const entries = getTaskEntries(taskId);
-      if (entries.length === 0) {
-        detailEntriesList.innerHTML = '<p class="text-xs text-surface-500">No additional entries logged yet.</p>';
-      } else {
-        detailEntriesList.innerHTML = entries
-          .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
-          .slice(0, 5)
-          .map((e) => {
-            const d = new Date(e.startTime);
-            const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            return `<div class="flex items-center justify-between rounded-lg border border-surface-700/30 bg-surface-800/30 px-3 py-2">
-              <div class="flex items-center gap-2">
-                <span class="h-1.5 w-1.5 rounded-full ${e.manual ? 'bg-amber-400' : 'bg-accent-400'}"></span>
-                <span class="text-xs text-surface-400">${escapeHtml(e.description || (e.manual ? 'Manual entry' : 'Timer'))}</span>
-              </div>
-              <div class="flex items-center gap-2">
-                <span class="text-xs text-surface-500">${dateStr}</span>
-                <span class="text-xs font-medium text-surface-300">${formatDuration(e.durationMinutes)}</span>
-              </div>
-            </div>`;
-          })
-          .join('');
-      }
-    }
-  }
-
-  function updateDetailTimerState(taskId: string) {
-    const timer = getActiveTimer();
-    const isRunning = timer && timer.taskId === taskId;
-
-    if (isRunning) {
-      const elapsed = Date.now() - new Date(timer.startTime).getTime();
-      if (detailTimerDisplay) detailTimerDisplay.textContent = formatTimerDisplay(elapsed);
-      if (detailTimerStatus) {
-        detailTimerStatus.textContent = 'Running';
-        detailTimerStatus.className = 'mt-0.5 text-xs text-green-400';
-      }
-      timerPlayIcon?.classList.add('hidden');
-      timerStopIcon?.classList.remove('hidden');
-      if (detailTimerToggle) {
-        detailTimerToggle.classList.remove('bg-accent-600', 'hover:bg-accent-700', 'shadow-accent-600/20', 'hover:shadow-accent-600/30');
-        detailTimerToggle.classList.add('bg-red-600', 'hover:bg-red-700', 'shadow-red-600/20', 'hover:shadow-red-600/30');
-      }
-    } else {
-      if (detailTimerDisplay) detailTimerDisplay.textContent = '00:00:00';
-      if (detailTimerStatus) {
-        detailTimerStatus.textContent = 'Stopped';
-        detailTimerStatus.className = 'mt-0.5 text-xs text-surface-500';
-      }
-      timerPlayIcon?.classList.remove('hidden');
-      timerStopIcon?.classList.add('hidden');
-      if (detailTimerToggle) {
-        detailTimerToggle.classList.remove('bg-red-600', 'hover:bg-red-700', 'shadow-red-600/20', 'hover:shadow-red-600/30');
-        detailTimerToggle.classList.add('bg-accent-600', 'hover:bg-accent-700', 'shadow-accent-600/20', 'hover:shadow-accent-600/30');
-      }
-    }
-  }
-
-  // ── Timer Toggle ───────────────────────────────────────────────────────
-  detailTimerToggle?.addEventListener('click', () => {
-    if (!currentTaskId) return;
-    const timer = getActiveTimer();
-    const isRunning = timer && timer.taskId === currentTaskId;
-
-    if (isRunning) {
-      // Stop timer, save entry
-      const elapsed = Date.now() - new Date(timer.startTime).getTime();
-      const minutes = Math.max(1, Math.round(elapsed / 60000));
-      const entry: TimeEntry = {
-        id: 'te-timer-' + Date.now(),
-        taskId: currentTaskId,
-        projectId: taskProjectMap[currentTaskId] || null,
-        description: 'Timer session',
-        startTime: timer.startTime,
-        endTime: new Date().toISOString(),
-        durationMinutes: minutes,
-        manual: false,
-      };
-      const entries = getStoredEntries();
-      entries.push(entry);
-      saveEntries(entries);
-      setActiveTimer(null);
-      showToast(`Logged ${formatDuration(minutes)} via timer`);
-
-      // Refresh detail panel
-      const taskItem = document.querySelector(`.task-item[data-task-id="${currentTaskId}"]`) as HTMLElement;
-      const seedMinutes = parseInt(taskItem?.dataset.seedMinutes || '0');
-      updateDetailTimeInfo(currentTaskId, seedMinutes);
-      updateDetailTimerState(currentTaskId);
-      updateTimeBadges();
-    } else {
-      // If another timer is running, stop it first
-      if (timer) {
-        const elapsed = Date.now() - new Date(timer.startTime).getTime();
-        const minutes = Math.max(1, Math.round(elapsed / 60000));
-        const entry: TimeEntry = {
-          id: 'te-timer-' + Date.now(),
-          taskId: timer.taskId,
-          projectId: timer.projectId,
-          description: 'Timer session (auto-stopped)',
-          startTime: timer.startTime,
-          endTime: new Date().toISOString(),
-          durationMinutes: minutes,
-          manual: false,
-        };
-        const entries = getStoredEntries();
-        entries.push(entry);
-        saveEntries(entries);
-      }
-
-      // Start new timer
-      setActiveTimer({
-        taskId: currentTaskId,
-        projectId: taskProjectMap[currentTaskId] || null,
-        startTime: new Date().toISOString(),
-      });
-      updateDetailTimerState(currentTaskId);
-    }
-  });
-
-  // ── Manual Entry from Detail Panel ─────────────────────────────────────
-  document.getElementById('detail-manual-form')?.addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!currentTaskId) return;
-
-    const hours = parseInt((document.getElementById('detail-hours') as HTMLInputElement).value) || 0;
-    const minutes = parseInt((document.getElementById('detail-minutes') as HTMLInputElement).value) || 0;
-    const totalMinutes = hours * 60 + minutes;
-    if (totalMinutes <= 0) return;
-
-    const entry: TimeEntry = {
-      id: 'te-manual-' + Date.now(),
-      taskId: currentTaskId,
-      projectId: taskProjectMap[currentTaskId] || null,
-      description: 'Manual time entry',
-      startTime: new Date().toISOString(),
-      endTime: new Date().toISOString(),
-      durationMinutes: totalMinutes,
-      manual: true,
-    };
-
-    const entries = getStoredEntries();
-    entries.push(entry);
-    saveEntries(entries);
-
-    // Refresh
-    const taskItem = document.querySelector(`.task-item[data-task-id="${currentTaskId}"]`) as HTMLElement;
-    const seedMinutes = parseInt(taskItem?.dataset.seedMinutes || '0');
-    updateDetailTimeInfo(currentTaskId, seedMinutes);
-    updateTimeBadges();
-    showToast(`Logged ${formatDuration(totalMinutes)} manually`);
-
-    // Reset form
-    (document.getElementById('detail-hours') as HTMLInputElement).value = '0';
-    (document.getElementById('detail-minutes') as HTMLInputElement).value = '30';
-  });
-
-  // ── Close panel ────────────────────────────────────────────────────────
-  closeDetailBtn?.addEventListener('click', closeDetailPanel);
-  detailOverlay?.addEventListener('click', closeDetailPanel);
-
-  // ── Attach task click listeners ────────────────────────────────────────
-  function attachTaskListeners(taskEl: Element) {
-    // Click on task title opens detail panel
-    const titleBtn = taskEl.querySelector('.task-title-btn');
-    titleBtn?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      openDetailPanel(taskEl as HTMLElement);
-    });
-
-    // Click on row (but not checkbox/title) also opens panel
-    taskEl.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.task-checkbox')) return;
-      openDetailPanel(taskEl as HTMLElement);
-    });
-
-    // Checkbox for new tasks
-    const checkbox = taskEl.querySelector('.task-checkbox');
-    checkbox?.addEventListener('click', (e) => {
-      e.stopPropagation();
-      const taskItem = checkbox.closest('.task-item') as HTMLElement;
-      if (!taskItem) return;
-      taskItem.dataset.status = 'done';
-      taskItem.classList.add('opacity-50');
-      checkbox.classList.remove('border-surface-600');
-      checkbox.classList.add('border-green-500', 'bg-green-500');
-      checkbox.innerHTML = '<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>';
-      const titleEl = taskItem.querySelector('.task-title-btn');
-      if (titleEl) {
-        titleEl.classList.remove('text-surface-200');
-        titleEl.classList.add('text-surface-500', 'line-through');
-      }
-      applyFilters();
-    });
-  }
-
-  // Attach listeners to existing task items
-  document.querySelectorAll('.task-item').forEach(attachTaskListeners);
-
-  // ── Toast Helper ───────────────────────────────────────────────────────
-  function showToast(message: string) {
-    const toast = document.createElement('div');
-    toast.className = 'fixed bottom-6 right-6 z-[70] rounded-lg border border-green-500/30 bg-green-500/15 px-4 py-3 text-sm font-medium text-green-400 shadow-lg backdrop-blur-sm transition-all duration-300';
-    toast.textContent = message;
-    document.body.appendChild(toast);
-    setTimeout(() => {
-      toast.style.opacity = '0';
-      toast.style.transform = 'translateY(10px)';
-      setTimeout(() => toast.remove(), 300);
-    }, 2500);
-  }
-
-  // ── Escape to close panel ──────────────────────────────────────────────
+  document.getElementById('detail-close-btn')!.addEventListener('click', closeDetailPanel);
+  detailOverlay.addEventListener('click', closeDetailPanel);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && currentTaskId) {
+    if (e.key === 'Escape' && !detailPanel.classList.contains('hidden')) {
       closeDetailPanel();
-      e.stopPropagation();
     }
   });
 
-  // ── Initialize ─────────────────────────────────────────────────────────
-  updateTimeBadges();
+  // Initial render
+  renderProjectFilters();
+  renderProjectSelect();
+  renderTasks();
 </script>

@@ -1,51 +1,12 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import tasks from '../../data/tasks.json';
-import projects from '../../data/projects.json';
-
-// Build events array for JS consumption
-interface CalendarEvent {
-  date: string;
-  title: string;
-  color: string;
-  type: string;
-}
-
-const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
-
-const events: CalendarEvent[] = [];
-
-// Task due dates
-tasks.forEach((task) => {
-  if (task.dueDate) {
-    const proj = task.project ? projectMap[task.project] : null;
-    events.push({
-      date: task.dueDate,
-      title: task.title,
-      color: proj ? proj.color : '#6366f1',
-      type: 'task',
-    });
-  }
-});
-
-// Project due dates
-projects.forEach((proj) => {
-  if (proj.dueDate) {
-    events.push({
-      date: proj.dueDate,
-      title: `${proj.title} due`,
-      color: proj.color,
-      type: 'project',
-    });
-  }
-});
 ---
 
 <DashboardLayout title="Calendar" active="calendar">
   <!-- Calendar Header -->
-  <div class="mb-8 flex items-center justify-between">
+  <div class="mb-6 flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold tracking-tight text-surface-100" id="calendar-title">February 2026</h1>
+      <h1 class="text-2xl font-bold text-surface-100 tracking-tight" id="calendar-title">February 2026</h1>
       <p class="mt-1 text-sm text-surface-400">Task and project deadlines</p>
     </div>
     <div class="flex items-center gap-2">
@@ -77,36 +38,97 @@ projects.forEach((proj) => {
   </div>
 
   <!-- Calendar Grid -->
-  <div class="card overflow-hidden">
+  <div class="fd-card overflow-hidden">
     <!-- Day headers -->
-    <div class="grid grid-cols-7 border-b border-surface-700/50 bg-surface-800/30">
-      {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day) => (
-        <div class="py-3 text-center text-xs font-semibold uppercase tracking-wider text-surface-400">
-          {day}
-        </div>
-      ))}
+    <div class="grid grid-cols-7 border-b border-surface-700/50">
+      <div class="py-3 text-center text-xs font-semibold uppercase tracking-wider text-surface-400">Mon</div>
+      <div class="py-3 text-center text-xs font-semibold uppercase tracking-wider text-surface-400">Tue</div>
+      <div class="py-3 text-center text-xs font-semibold uppercase tracking-wider text-surface-400">Wed</div>
+      <div class="py-3 text-center text-xs font-semibold uppercase tracking-wider text-surface-400">Thu</div>
+      <div class="py-3 text-center text-xs font-semibold uppercase tracking-wider text-surface-400">Fri</div>
+      <div class="py-3 text-center text-xs font-semibold uppercase tracking-wider text-surface-400">Sat</div>
+      <div class="py-3 text-center text-xs font-semibold uppercase tracking-wider text-surface-400">Sun</div>
     </div>
     <!-- Calendar days (rendered by JS) -->
     <div id="calendar-grid" class="grid grid-cols-7"></div>
   </div>
 
-  <!-- Legend -->
-  <div class="mt-4 flex flex-wrap items-center gap-4 text-xs text-surface-400">
-    <span class="flex items-center gap-1.5">
-      <span class="h-2.5 w-2.5 rounded-full bg-accent-500 ring-2 ring-accent-500/20"></span>
-      Today
-    </span>
-    {projects.map((p) => (
-      <span class="flex items-center gap-1.5">
-        <span class="h-2 w-2 rounded-full" style={`background-color: ${p.color}`}></span>
-        {p.title}
-      </span>
-    ))}
-  </div>
+  <!-- Legend (rendered by JS) -->
+  <div id="calendar-legend" class="mt-4 flex flex-wrap items-center gap-4 text-xs text-surface-400"></div>
 </DashboardLayout>
 
-<script define:vars={{ events }}>
-  const calendarEvents = events;
+<script>
+  import { initStore, getTasks, getProjects } from '../../lib/store';
+
+  // Initialize store from API before any reads
+  await initStore();
+
+  interface CalendarEvent {
+    date: string;
+    title: string;
+    color: string;
+    type: string;
+  }
+
+  const projects = getProjects();
+  const tasks = getTasks();
+
+  const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
+
+  const calendarEvents: CalendarEvent[] = [];
+
+  // Task due dates
+  tasks.forEach((task) => {
+    if (task.dueDate) {
+      const proj = task.project ? projectMap[task.project] : null;
+      calendarEvents.push({
+        date: task.dueDate,
+        title: task.title,
+        color: proj ? proj.color : '#6366f1',
+        type: 'task',
+      });
+    }
+  });
+
+  // Project due dates
+  projects.forEach((proj) => {
+    if (proj.dueDate) {
+      calendarEvents.push({
+        date: proj.dueDate,
+        title: `${proj.title} due`,
+        color: proj.color,
+        type: 'project',
+      });
+    }
+  });
+
+  // Render legend
+  const legendEl = document.getElementById('calendar-legend');
+  if (legendEl) {
+    let legendHtml = `
+      <span class="flex items-center gap-1.5">
+        <span class="h-2 w-2 rounded-full bg-accent-500"></span>
+        Today
+      </span>
+    `;
+    projects.forEach((p) => {
+      legendHtml += `
+        <span class="flex items-center gap-1.5">
+          <span class="h-2 w-2 rounded-full" style="background-color: ${p.color}"></span>
+          ${p.title}
+        </span>
+      `;
+    });
+    if (projects.length === 0) {
+      legendHtml += `
+        <span class="flex items-center gap-1.5">
+          <span class="h-2 w-2 rounded-full bg-accent-500"></span>
+          Tasks
+        </span>
+      `;
+    }
+    legendEl.innerHTML = legendHtml;
+  }
 
   const now = new Date();
   let currentYear = now.getFullYear();
@@ -117,7 +139,7 @@ projects.forEach((proj) => {
     'July', 'August', 'September', 'October', 'November', 'December'
   ];
 
-  function getEventsForDate(year, month, day) {
+  function getEventsForDate(year: number, month: number, day: number) {
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return calendarEvents.filter(e => e.date === dateStr);
   }
@@ -168,9 +190,9 @@ projects.forEach((proj) => {
     }
   }
 
-  function createDayCell(day, dimmed, isToday, evtYear, evtMonth, evtDay) {
+  function createDayCell(day: number, dimmed: boolean, isToday: boolean, evtYear: number, evtMonth: number, evtDay: number) {
     const cell = document.createElement('div');
-    cell.className = 'min-h-[80px] sm:min-h-[100px] border-b border-r border-surface-700/30 p-1.5 sm:p-2';
+    cell.className = 'fd-cal-day min-h-[80px] sm:min-h-[100px] border-b border-r border-surface-700/30 p-1.5 sm:p-2';
 
     // Day number
     const dayNum = document.createElement('span');

@@ -1,0 +1,535 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+---
+
+<DashboardLayout title="Project Detail" active="projects">
+  <!-- Back Link -->
+  <a href="/projects/" class="mb-4 inline-flex items-center gap-1.5 text-sm text-surface-400 transition-colors hover:text-accent-400">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+      <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+    </svg>
+    Projects
+  </a>
+
+  <!-- Header (rendered by JS) -->
+  <div id="project-header" class="mb-6"></div>
+
+  <!-- Edit Form (hidden by default) -->
+  <div id="edit-form-panel" class="mb-6 hidden fd-card bg-surface-900 p-5">
+    <h3 class="mb-4 text-sm font-semibold text-surface-200">Edit Project</h3>
+    <form id="edit-form" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div class="sm:col-span-2 lg:col-span-3">
+        <input type="text" id="ef-title" placeholder="Project title..." required
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <select id="ef-status"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
+          <option value="lead">Lead</option>
+          <option value="in-progress">In Progress</option>
+          <option value="review">Review</option>
+          <option value="completed">Completed</option>
+        </select>
+      </div>
+      <div>
+        <select id="ef-priority"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
+          <option value="medium">Medium Priority</option>
+          <option value="high">High Priority</option>
+          <option value="low">Low Priority</option>
+        </select>
+      </div>
+      <div>
+        <input type="number" id="ef-progress" placeholder="Progress %" min="0" max="100"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <input type="number" id="ef-budget" placeholder="Budget ($)" min="0" step="100"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <input type="number" id="ef-spent" placeholder="Spent ($)" min="0" step="100"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <input type="date" id="ef-due"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div class="sm:col-span-2 lg:col-span-3">
+        <textarea id="ef-description" placeholder="Description..." rows="2"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"></textarea>
+      </div>
+      <div class="sm:col-span-2 lg:col-span-3">
+        <textarea id="ef-notes" placeholder="Notes..." rows="2"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"></textarea>
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit"
+          class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-700">
+          Save
+        </button>
+        <button type="button" id="cancel-edit-btn"
+          class="rounded-lg border border-surface-700 px-4 py-2 text-sm font-medium text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Two Column Layout -->
+  <div class="grid gap-6 lg:grid-cols-3">
+    <div id="left-col" class="flex flex-col gap-6 lg:col-span-2"></div>
+    <div id="right-col" class="flex flex-col gap-6"></div>
+  </div>
+
+  <!-- Add Task Form (hidden by default) -->
+  <div id="add-task-form" class="mt-4 hidden fd-card bg-surface-900 p-5">
+    <h3 class="mb-4 text-sm font-semibold text-surface-200">Add Task</h3>
+    <form id="new-task-form" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div class="sm:col-span-2 lg:col-span-2">
+        <input type="text" id="tf-title" placeholder="Task title..." required
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div>
+        <select id="tf-priority"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+      <div>
+        <input type="date" id="tf-due"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div class="sm:col-span-2 lg:col-span-4">
+        <input type="text" id="tf-description" placeholder="Description (optional)..."
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500" />
+      </div>
+      <div class="sm:col-span-2 lg:col-span-4">
+        <textarea id="tf-prompt" placeholder="Agent prompt (instructions for Claude Code agents)..." rows="3"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"></textarea>
+      </div>
+      <div class="flex items-end gap-2">
+        <button type="submit"
+          class="rounded-lg bg-accent-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-accent-700">
+          Add
+        </button>
+        <button type="button" id="cancel-task-btn"
+          class="rounded-lg border border-surface-700 px-4 py-2 text-sm font-medium text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">
+          Cancel
+        </button>
+      </div>
+    </form>
+  </div>
+</DashboardLayout>
+
+<script>
+  import { initStore, getProject, getClient, getTasks, updateProject, updateTask, addTask, deleteTask } from '../../lib/store';
+  import type { Project, Task } from '../../lib/store';
+
+  // Initialize store from API before any reads
+  await initStore();
+
+  const params = new URLSearchParams(window.location.search);
+  const projectId = params.get('id');
+  if (!projectId) { window.location.href = '/projects/'; }
+
+  function escapeHtml(str: string): string {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function formatCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(amount);
+  }
+
+  function formatDate(dateStr: string | null): string {
+    if (!dateStr) return 'TBD';
+    return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  }
+
+  function statusBadge(status: string): { label: string; classes: string } {
+    switch (status) {
+      case 'lead': return { label: 'Lead', classes: 'bg-surface-500/15 text-surface-400' };
+      case 'in-progress': return { label: 'In Progress', classes: 'bg-blue-500/15 text-blue-400' };
+      case 'review': return { label: 'Review', classes: 'bg-amber-500/15 text-amber-400' };
+      case 'completed': return { label: 'Completed', classes: 'bg-green-500/15 text-green-400' };
+      default: return { label: status, classes: 'bg-surface-500/15 text-surface-400' };
+    }
+  }
+
+  function priorityClasses(priority: string): string {
+    switch (priority) {
+      case 'high': return 'bg-red-500/15 text-red-400';
+      case 'medium': return 'bg-amber-500/15 text-amber-400';
+      case 'low': return 'bg-blue-500/15 text-blue-400';
+      default: return 'bg-surface-500/15 text-surface-400';
+    }
+  }
+
+  function daysRemaining(dateStr: string | null): number | null {
+    if (!dateStr) return null;
+    const due = new Date(dateStr);
+    const now = new Date();
+    return Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+  }
+
+  function renderPage() {
+    const project = getProject(projectId!);
+    if (!project) { window.location.href = '/projects/'; return; }
+
+    const client = project.client ? getClient(project.client) : undefined;
+    const allTasks = getTasks();
+    const projectTasks = allTasks.filter(t => t.project === project.id);
+    const badge = statusBadge(project.status);
+    const budgetRemaining = project.budget - project.spent;
+    const budgetPercent = project.budget > 0 ? Math.round((project.spent / project.budget) * 100) : 0;
+    const daysLeft = daysRemaining(project.dueDate);
+    const circumference = 2 * Math.PI * 52;
+
+    // Header
+    document.getElementById('project-header')!.innerHTML = `
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div class="flex items-center gap-3">
+            <h1 class="text-2xl font-bold text-surface-100">${escapeHtml(project.title)}</h1>
+            <span class="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${badge.classes}">
+              ${badge.label}
+            </span>
+          </div>
+          ${client ? `
+            <a href="/clients/" class="mt-1 inline-flex items-center gap-1.5 text-sm text-surface-400 transition-colors hover:text-accent-400">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
+              </svg>
+              ${escapeHtml(client.name)}
+            </a>
+          ` : ''}
+        </div>
+        <div class="flex items-center gap-2">
+          <button id="edit-btn" class="inline-flex items-center gap-2 rounded-lg border border-surface-700 bg-surface-800 px-4 py-2 text-sm font-medium text-surface-300 transition-colors hover:border-surface-600 hover:text-surface-100">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
+            </svg>
+            Edit
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Left column
+    document.getElementById('left-col')!.innerHTML = `
+      <!-- Description -->
+      <div class="fd-card p-5">
+        <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Description</h2>
+        <p class="text-sm leading-relaxed text-surface-300">${project.description ? escapeHtml(project.description) : '<span class="text-surface-500 italic">No description</span>'}</p>
+      </div>
+
+      <!-- Scope -->
+      ${project.scope && project.scope.length > 0 ? `
+        <div class="fd-card p-5">
+          <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Scope</h2>
+          <ul class="space-y-2.5">
+            ${project.scope.map((item, i) => {
+              const checked = i < project.progress / (100 / project.scope.length);
+              return `
+                <li class="flex items-start gap-3 scope-item" data-index="${i}">
+                  <button class="scope-check mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded border ${checked ? 'border-green-500 bg-green-500/15' : 'border-surface-600 bg-surface-700/50'}" data-index="${i}">
+                    ${checked ? '<svg class="h-3 w-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>' : ''}
+                  </button>
+                  <span class="text-sm ${checked ? 'text-surface-400 line-through' : 'text-surface-200'}">${escapeHtml(item)}</span>
+                </li>
+              `;
+            }).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      <!-- Tasks -->
+      <div class="fd-card p-5">
+        <div class="mb-4 flex items-center justify-between">
+          <h2 class="text-sm font-semibold uppercase tracking-wider text-surface-400">Tasks</h2>
+          <div class="flex items-center gap-3">
+            <span class="text-xs text-surface-500">${projectTasks.length} tasks</span>
+            <button id="add-task-btn" class="inline-flex items-center gap-1 rounded-md bg-accent-600 px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-accent-700">
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+              </svg>
+              Add
+            </button>
+          </div>
+        </div>
+        ${projectTasks.length > 0 ? `
+          <div class="space-y-2" id="tasks-list">
+            ${projectTasks.map(task => {
+              const isDone = task.status === 'done';
+              const isInProgress = task.status === 'in-progress';
+              const promptIcon = task.prompt ? `<span class="flex-shrink-0 text-accent-400" title="Has agent prompt"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m6.75 7.5 3 2.25-3 2.25m4.5 0h3m-9 8.25h13.5A2.25 2.25 0 0 0 21 18V6a2.25 2.25 0 0 0-2.25-2.25H5.25A2.25 2.25 0 0 0 3 6v12a2.25 2.25 0 0 0 2.25 2.25Z" /></svg></span>` : '';
+              const assigneeBadge = task.assignee ? `<span class="flex-shrink-0 items-center rounded-full bg-accent-600/15 px-2 py-0.5 text-[10px] font-semibold text-accent-400">${escapeHtml(task.assignee)}</span>` : '';
+              return `
+                <div class="group rounded-lg border border-surface-700/30 bg-surface-850" data-task-id="${task.id}">
+                  <div class="flex items-center gap-3 p-3">
+                    ${isDone ? `
+                      <button class="task-toggle flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-green-500/15" data-task-id="${task.id}" data-current="done">
+                        <svg class="h-3 w-3 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
+                      </button>
+                    ` : isInProgress ? `
+                      <button class="task-toggle flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-blue-500/15" data-task-id="${task.id}" data-current="in-progress">
+                        <div class="h-2 w-2 rounded-full bg-blue-400 animate-pulse"></div>
+                      </button>
+                    ` : `
+                      <button class="task-toggle flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-surface-700" data-task-id="${task.id}" data-current="todo">
+                        <div class="h-2 w-2 rounded-full bg-surface-500"></div>
+                      </button>
+                    `}
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium ${isDone ? 'text-surface-500 line-through' : 'text-surface-200'}">${escapeHtml(task.title)}</p>
+                      ${task.description ? `<p class="mt-0.5 text-xs text-surface-500">${escapeHtml(task.description)}</p>` : ''}
+                    </div>
+                    <div class="flex flex-shrink-0 items-center gap-2">
+                      ${promptIcon}
+                      ${assigneeBadge}
+                      <span class="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${priorityClasses(task.priority)}">${task.priority}</span>
+                      <span class="text-xs text-surface-500">${task.dueDate ? new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''}</span>
+                      ${task.prompt ? `<button class="proj-task-expand hidden rounded p-1 text-surface-500 transition-colors hover:bg-surface-700 hover:text-surface-200 group-hover:block" data-task-id="${task.id}" title="Show prompt"><svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg></button>` : ''}
+                      <button class="task-delete hidden rounded p-1 text-surface-500 transition-colors hover:bg-red-500/15 hover:text-red-400 group-hover:block" data-task-id="${task.id}" title="Delete task">
+                        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  ${task.prompt ? `<div class="proj-task-prompt hidden border-t border-surface-700/30 px-3 py-2" data-task-id="${task.id}"><pre class="whitespace-pre-wrap text-xs text-surface-400">${escapeHtml(task.prompt)}</pre></div>` : ''}
+                </div>
+              `;
+            }).join('')}
+          </div>
+        ` : '<p class="text-sm text-surface-500">No tasks yet.</p>'}
+      </div>
+
+      <!-- Notes -->
+      ${project.notes ? `
+        <div class="fd-card p-5">
+          <h2 class="mb-3 text-sm font-semibold uppercase tracking-wider text-surface-400">Notes</h2>
+          <p class="text-sm leading-relaxed text-surface-300">${escapeHtml(project.notes)}</p>
+        </div>
+      ` : ''}
+    `;
+
+    // Right column
+    const budgetBarColor = budgetPercent > 90 ? 'bg-red-500' : budgetPercent > 70 ? 'bg-amber-500' : 'bg-accent-500';
+    const remainingColor = budgetRemaining < 0 ? 'text-red-400' : 'text-green-400';
+    const daysColor = daysLeft !== null ? (daysLeft < 0 ? 'text-red-400' : daysLeft <= 7 ? 'text-amber-400' : 'text-surface-200') : '';
+    const daysText = daysLeft !== null ? (daysLeft < 0 ? `${Math.abs(daysLeft)} days overdue` : daysLeft === 0 ? 'Due today' : `${daysLeft} days`) : 'TBD';
+
+    document.getElementById('right-col')!.innerHTML = `
+      <!-- Progress -->
+      <div class="fd-card p-6">
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Progress</h2>
+        <div class="flex flex-col items-center">
+          <div class="relative h-28 w-28">
+            <svg class="h-28 w-28 -rotate-90" viewBox="0 0 120 120">
+              <circle cx="60" cy="60" r="52" fill="none" stroke="var(--color-surface-700)" stroke-width="8" />
+              <circle cx="60" cy="60" r="52" fill="none" stroke="${project.color}" stroke-width="8" stroke-linecap="round"
+                stroke-dasharray="${circumference}" stroke-dashoffset="${circumference * (1 - project.progress / 100)}" />
+            </svg>
+            <div class="absolute inset-0 flex items-center justify-center">
+              <span class="text-2xl font-bold text-surface-100">${project.progress}%</span>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-surface-400">
+            ${project.progress === 100 ? 'Project complete' : project.progress === 0 ? 'Not started' : 'In progress'}
+          </p>
+        </div>
+      </div>
+
+      <!-- Budget -->
+      <div class="fd-card p-6">
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Budget</h2>
+        <div class="mb-2 flex items-baseline justify-between">
+          <span class="text-2xl font-bold text-surface-100">${formatCurrency(project.spent)}</span>
+          <span class="text-sm text-surface-400">of ${formatCurrency(project.budget)}</span>
+        </div>
+        <div class="mb-3 h-2 w-full overflow-hidden rounded-full bg-surface-700">
+          <div class="h-full rounded-full ${budgetBarColor}" style="width: ${budgetPercent}%"></div>
+        </div>
+        <div class="flex items-center justify-between text-xs">
+          <span class="text-surface-400">${budgetPercent}% spent</span>
+          <span class="font-medium ${remainingColor}">${formatCurrency(budgetRemaining)} remaining</span>
+        </div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="fd-card p-6">
+        <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Timeline</h2>
+        <div class="space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-surface-400">Start Date</span>
+            <span class="text-sm font-medium text-surface-200">${formatDate(project.startDate)}</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-xs text-surface-400">Due Date</span>
+            <span class="text-sm font-medium text-surface-200">${formatDate(project.dueDate)}</span>
+          </div>
+          <div class="border-t border-surface-700/50 pt-3">
+            <div class="flex items-center justify-between">
+              <span class="text-xs text-surface-400">Time Remaining</span>
+              <span class="text-sm font-semibold ${daysColor}">${daysText}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Client -->
+      ${client ? `
+        <div class="fd-card p-6">
+          <h2 class="mb-4 text-sm font-semibold uppercase tracking-wider text-surface-400">Client</h2>
+          <div class="flex items-center gap-3 mb-4">
+            <div class="flex h-10 w-10 items-center justify-center rounded-full bg-accent-600/20 text-sm font-semibold text-accent-400">
+              ${escapeHtml(client.avatar)}
+            </div>
+            <div>
+              <p class="text-sm font-medium text-surface-200">${escapeHtml(client.contact)}</p>
+              <p class="text-xs text-surface-400">${escapeHtml(client.name)}</p>
+            </div>
+          </div>
+          <div class="space-y-2.5">
+            <a href="mailto:${encodeURIComponent(client.email)}" class="flex items-center gap-2.5 text-xs text-surface-400 transition-colors hover:text-accent-400">
+              <svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+              </svg>
+              ${escapeHtml(client.email)}
+            </a>
+            <a href="tel:${encodeURIComponent(client.phone)}" class="flex items-center gap-2.5 text-xs text-surface-400 transition-colors hover:text-accent-400">
+              <svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 6.75c0 8.284 6.716 15 15 15h2.25a2.25 2.25 0 0 0 2.25-2.25v-1.372c0-.516-.351-.966-.852-1.091l-4.423-1.106c-.44-.11-.902.055-1.173.417l-.97 1.293c-.282.376-.769.542-1.21.38a12.035 12.035 0 0 1-7.143-7.143c-.162-.441.004-.928.38-1.21l1.293-.97c.363-.271.527-.734.417-1.173L6.963 3.102a1.125 1.125 0 0 0-1.091-.852H4.5A2.25 2.25 0 0 0 2.25 4.5v2.25Z" />
+              </svg>
+              ${escapeHtml(client.phone)}
+            </a>
+            <div class="flex items-center gap-2.5 text-xs text-surface-400">
+              <svg class="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+              </svg>
+              ${escapeHtml(client.industry)}
+            </div>
+          </div>
+        </div>
+      ` : ''}
+    `;
+
+    // Bind event listeners
+    bindEventListeners(project);
+  }
+
+  function bindEventListeners(project: Project) {
+    // Edit button
+    document.getElementById('edit-btn')?.addEventListener('click', () => {
+      const panel = document.getElementById('edit-form-panel')!;
+      panel.classList.remove('hidden');
+      (document.getElementById('ef-title') as HTMLInputElement).value = project.title;
+      (document.getElementById('ef-status') as HTMLSelectElement).value = project.status;
+      (document.getElementById('ef-priority') as HTMLSelectElement).value = project.priority;
+      (document.getElementById('ef-progress') as HTMLInputElement).value = String(project.progress);
+      (document.getElementById('ef-budget') as HTMLInputElement).value = String(project.budget);
+      (document.getElementById('ef-spent') as HTMLInputElement).value = String(project.spent);
+      (document.getElementById('ef-due') as HTMLInputElement).value = project.dueDate || '';
+      (document.getElementById('ef-description') as HTMLTextAreaElement).value = project.description;
+      (document.getElementById('ef-notes') as HTMLTextAreaElement).value = project.notes;
+    });
+
+    // Task toggle (cycle: todo -> in-progress -> done -> todo)
+    document.querySelectorAll('.task-toggle').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const taskId = (btn as HTMLElement).dataset.taskId!;
+        const current = (btn as HTMLElement).dataset.current as Task['status'];
+        const next: Task['status'] = current === 'todo' ? 'in-progress' : current === 'in-progress' ? 'done' : 'todo';
+        updateTask(taskId, { status: next });
+        renderPage();
+      });
+    });
+
+    // Task delete
+    document.querySelectorAll('.task-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const taskId = (btn as HTMLElement).dataset.taskId!;
+        if (confirm('Delete this task?')) {
+          deleteTask(taskId);
+          renderPage();
+        }
+      });
+    });
+
+    // Prompt expand toggle
+    document.querySelectorAll('.proj-task-expand').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const taskId = (btn as HTMLElement).dataset.taskId!;
+        const promptEl = document.querySelector(`.proj-task-prompt[data-task-id="${taskId}"]`);
+        if (promptEl) promptEl.classList.toggle('hidden');
+      });
+    });
+
+    // Add task button
+    document.getElementById('add-task-btn')?.addEventListener('click', () => {
+      document.getElementById('add-task-form')!.classList.remove('hidden');
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderPage();
+
+    // Cancel edit
+    document.getElementById('cancel-edit-btn')!.addEventListener('click', () => {
+      document.getElementById('edit-form-panel')!.classList.add('hidden');
+    });
+
+    // Save edit
+    document.getElementById('edit-form')!.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = (document.getElementById('ef-title') as HTMLInputElement).value.trim();
+      if (!title) return;
+
+      updateProject(projectId!, {
+        title,
+        status: (document.getElementById('ef-status') as HTMLSelectElement).value as Project['status'],
+        priority: (document.getElementById('ef-priority') as HTMLSelectElement).value as Project['priority'],
+        progress: parseInt((document.getElementById('ef-progress') as HTMLInputElement).value) || 0,
+        budget: parseInt((document.getElementById('ef-budget') as HTMLInputElement).value) || 0,
+        spent: parseInt((document.getElementById('ef-spent') as HTMLInputElement).value) || 0,
+        dueDate: (document.getElementById('ef-due') as HTMLInputElement).value || null,
+        description: (document.getElementById('ef-description') as HTMLTextAreaElement).value.trim(),
+        notes: (document.getElementById('ef-notes') as HTMLTextAreaElement).value.trim(),
+      });
+
+      document.getElementById('edit-form-panel')!.classList.add('hidden');
+      renderPage();
+    });
+
+    // Cancel add task
+    document.getElementById('cancel-task-btn')!.addEventListener('click', () => {
+      document.getElementById('add-task-form')!.classList.add('hidden');
+    });
+
+    // Add task submit
+    document.getElementById('new-task-form')!.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = (document.getElementById('tf-title') as HTMLInputElement).value.trim();
+      if (!title) return;
+
+      addTask({
+        title,
+        project: projectId!,
+        priority: (document.getElementById('tf-priority') as HTMLSelectElement).value as Task['priority'],
+        status: 'todo',
+        dueDate: (document.getElementById('tf-due') as HTMLInputElement).value || '',
+        description: (document.getElementById('tf-description') as HTMLInputElement).value.trim(),
+        prompt: (document.getElementById('tf-prompt') as HTMLTextAreaElement).value.trim(),
+      });
+
+      (document.getElementById('new-task-form') as HTMLFormElement).reset();
+      document.getElementById('add-task-form')!.classList.add('hidden');
+      renderPage();
+    });
+  });
+</script>

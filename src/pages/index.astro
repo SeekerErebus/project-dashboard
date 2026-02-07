@@ -1,425 +1,406 @@
 ---
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import revenue from '../data/revenue.json';
-import activity from '../data/activity.json';
-import tasks from '../data/tasks.json';
-import projects from '../data/projects.json';
-
-// Compute stat card data
-const activeProjects = projects.filter(p => p.status === 'in-progress' || p.status === 'review').length;
-const revenueThisMonth = revenue.summary.thisMonth;
-const pendingInvoices = revenue.summary.pendingInvoices;
-const now = new Date('2026-02-06T12:00:00Z');
-const endOfWeek = new Date('2026-02-13T00:00:00Z');
-const tasksDueThisWeek = tasks.filter(t => {
-  if (t.status === 'done') return false;
-  const due = new Date(t.dueDate);
-  return due <= endOfWeek;
-}).length;
-
-// Revenue trend vs last month
-const revLastMonth = revenue.summary.lastMonth;
-const revTrend = revLastMonth > 0 ? Math.round(((revenueThisMonth - revLastMonth) / revLastMonth) * 100) : 0;
-const revTrendUp = revTrend >= 0;
-const revTrendLabel = (revTrend >= 0 ? '+' : '') + revTrend + '% vs last month';
-const revenueFormatted = '$' + revenueThisMonth.toLocaleString();
-const invoicesFormatted = '$' + pendingInvoices.toLocaleString();
-
-// Relative time helper
-function relativeTime(timestamp) {
-  const diff = now.getTime() - new Date(timestamp).getTime();
-  const minutes = Math.floor(diff / 60000);
-  const hours = Math.floor(diff / 3600000);
-  const days = Math.floor(diff / 86400000);
-  if (minutes < 60) return minutes + 'm ago';
-  if (hours < 24) return hours + 'h ago';
-  if (days === 1) return 'Yesterday';
-  return days + 'd ago';
-}
-
-// Activity type config
-const activityConfig = {
-  'task-completed': { dot: 'bg-green-400', icon: 'check', iconBg: 'bg-green-500/15', iconColor: 'text-green-400' },
-  'payment-received': { dot: 'bg-accent-400', icon: 'dollar', iconBg: 'bg-accent-500/15', iconColor: 'text-accent-400' },
-  'comment': { dot: 'bg-blue-400', icon: 'chat', iconBg: 'bg-blue-500/15', iconColor: 'text-blue-400' },
-  'project-update': { dot: 'bg-amber-400', icon: 'update', iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400' },
-  'milestone': { dot: 'bg-green-400', icon: 'flag', iconBg: 'bg-green-500/15', iconColor: 'text-green-400' },
-  'new-lead': { dot: 'bg-pink-400', icon: 'user', iconBg: 'bg-pink-500/15', iconColor: 'text-pink-400' },
-  'invoice-sent': { dot: 'bg-accent-400', icon: 'doc', iconBg: 'bg-accent-500/15', iconColor: 'text-accent-400' },
-};
-
-// Prepare activity data with computed fields
-const activityItems = activity.map((item, i) => ({
-  ...item,
-  config: activityConfig[item.type] || { dot: 'bg-surface-400', iconBg: 'bg-surface-700', iconColor: 'text-surface-400' },
-  time: relativeTime(item.timestamp),
-  showLine: i < activity.length - 1,
-}));
-
-// Upcoming deadlines: tasks not done, sorted by date, with pre-computed badge styles
-function getDeadlineBadge(daysRemaining) {
-  if (daysRemaining < 0) {
-    return {
-      badgeBg: 'bg-red-500/15',
-      badgeText: 'text-red-400',
-      badgeBorder: 'border-red-500/20',
-      label: Math.abs(daysRemaining) + 'd overdue',
-    };
-  }
-  if (daysRemaining <= 7) {
-    let label = daysRemaining + 'd left';
-    if (daysRemaining === 0) label = 'Due today';
-    else if (daysRemaining === 1) label = 'Due tomorrow';
-    return {
-      badgeBg: 'bg-amber-500/15',
-      badgeText: 'text-amber-400',
-      badgeBorder: 'border-amber-500/20',
-      label,
-    };
-  }
-  return {
-    badgeBg: 'bg-surface-700/50',
-    badgeText: 'text-surface-300',
-    badgeBorder: 'border-surface-700/30',
-    label: daysRemaining + 'd left',
-  };
-}
-
-const deadlines = tasks
-  .filter(t => t.status !== 'done')
-  .map(t => {
-    const due = new Date(t.dueDate);
-    const daysRemaining = Math.ceil((due.getTime() - now.getTime()) / 86400000);
-    const projectName = projects.find(p => p.id === t.project)?.title || 'Personal';
-    const projectColor = projects.find(p => p.id === t.project)?.color || '#6366f1';
-    const badge = getDeadlineBadge(daysRemaining);
-    return { ...t, daysRemaining, projectName, projectColor, dueObj: due, ...badge };
-  })
-  .sort((a, b) => a.dueObj.getTime() - b.dueObj.getTime());
-
-// Serialize revenue data for client-side Chart.js
-const chartLabels = revenue.monthly.map(m => m.month);
-const chartRevenue = revenue.monthly.map(m => m.revenue);
-const chartExpenses = revenue.monthly.map(m => m.expenses);
-
-// Quick stat: completion rate
-const totalTasks = tasks.length;
-const doneTasks = tasks.filter(t => t.status === 'done').length;
-const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 ---
 <DashboardLayout title="Dashboard" active="dashboard">
   <!-- Page Header -->
   <div class="mb-8">
-    <h1 class="text-2xl font-bold tracking-tight text-surface-100">Dashboard</h1>
-    <p class="mt-1 text-sm text-surface-400">Welcome back, Jonathan. Here is what is happening across your projects.</p>
+    <h1 class="text-2xl font-bold text-surface-100 tracking-tight">Dashboard</h1>
+    <p class="mt-1 text-sm text-surface-400">Welcome back, Alex. Here is what is happening across your projects.</p>
   </div>
 
   <!-- Stat Cards -->
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-    <!-- Active Projects -->
-    <div class="group card p-5 transition-all duration-200 hover:border-accent-500/30">
-      <div class="flex items-center justify-between">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-600/15 ring-1 ring-accent-500/10">
-          <svg class="h-5 w-5 text-accent-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
-          </svg>
-        </div>
-        <span class="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[11px] font-medium text-green-400">
-          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
-          +1 this month
+  <div id="stats-grid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"></div>
+
+  <!-- Revenue Chart -->
+  <div class="fd-card mt-6 p-5 sm:p-6">
+    <div class="mb-4 flex items-center justify-between">
+      <div>
+        <h2 class="text-lg font-semibold text-surface-100">Revenue Overview</h2>
+        <p class="mt-0.5 text-sm text-surface-400">Monthly revenue and expenses</p>
+      </div>
+      <div class="flex items-center gap-4 text-xs text-surface-400">
+        <span class="flex items-center gap-1.5">
+          <span class="inline-block h-2.5 w-2.5 rounded-sm bg-accent-500"></span>Revenue
+        </span>
+        <span class="flex items-center gap-1.5">
+          <span class="inline-block h-2.5 w-2.5 rounded-sm bg-surface-600"></span>Expenses
         </span>
       </div>
-      <div class="mt-4">
-        <p class="text-3xl font-bold tracking-tight text-surface-100">{activeProjects}</p>
-        <p class="mt-1 text-sm text-surface-400">Active Projects</p>
-      </div>
     </div>
-
-    <!-- Revenue This Month -->
-    <div class="group card p-5 transition-all duration-200 hover:border-green-500/30">
-      <div class="flex items-center justify-between">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/15 ring-1 ring-green-500/10">
-          <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-          </svg>
-        </div>
-        <span class:list={[
-          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
-          revTrendUp ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400',
-        ]}>
-          {revTrendUp ? (
-            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
-          ) : (
-            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-15 15m0 0h11.25M4.5 19.5V8.25" /></svg>
-          )}
-          {revTrendLabel}
-        </span>
-      </div>
-      <div class="mt-4">
-        <p class="text-3xl font-bold tracking-tight text-surface-100">{revenueFormatted}</p>
-        <p class="mt-1 text-sm text-surface-400">Revenue This Month</p>
-      </div>
-    </div>
-
-    <!-- Pending Invoices -->
-    <div class="group card p-5 transition-all duration-200 hover:border-amber-500/30">
-      <div class="flex items-center justify-between">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15 ring-1 ring-amber-500/10">
-          <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
-          </svg>
-        </div>
-        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400">
-          <span class="h-1.5 w-1.5 rounded-full bg-amber-400 pulse-dot"></span>
-          2 outstanding
-        </span>
-      </div>
-      <div class="mt-4">
-        <p class="text-3xl font-bold tracking-tight text-surface-100">{invoicesFormatted}</p>
-        <p class="mt-1 text-sm text-surface-400">Pending Invoices</p>
-      </div>
-    </div>
-
-    <!-- Tasks Due This Week -->
-    <div class="group card p-5 transition-all duration-200 hover:border-blue-500/30">
-      <div class="flex items-center justify-between">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15 ring-1 ring-blue-500/10">
-          <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-          </svg>
-        </div>
-        <span class="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-400">
-          <span class="h-1.5 w-1.5 rounded-full bg-blue-400 pulse-dot"></span>
-          3 in progress
-        </span>
-      </div>
-      <div class="mt-4">
-        <p class="text-3xl font-bold tracking-tight text-surface-100">{tasksDueThisWeek}</p>
-        <p class="mt-1 text-sm text-surface-400">Tasks Due This Week</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Revenue Chart + Quick Stats -->
-  <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-4">
-    <!-- Revenue Chart -->
-    <div class="card p-5 sm:p-6 xl:col-span-3">
-      <div class="mb-5 flex items-center justify-between">
-        <div>
-          <h2 class="text-lg font-semibold text-surface-100">Revenue Overview</h2>
-          <p class="mt-0.5 text-sm text-surface-400">Monthly revenue and expenses</p>
-        </div>
-        <div class="flex items-center gap-4 text-xs text-surface-400">
-          <span class="flex items-center gap-1.5">
-            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-accent-500"></span>Revenue
-          </span>
-          <span class="flex items-center gap-1.5">
-            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-surface-600"></span>Expenses
-          </span>
-        </div>
-      </div>
-      <div class="relative h-64 sm:h-72">
-        <canvas
-          id="revenueChart"
-          data-labels={JSON.stringify(chartLabels)}
-          data-revenue={JSON.stringify(chartRevenue)}
-          data-expenses={JSON.stringify(chartExpenses)}
-        ></canvas>
-      </div>
-    </div>
-
-    <!-- Quick Stats Sidebar -->
-    <div class="flex flex-col gap-4">
-      <!-- Completion Rate -->
-      <div class="card p-5">
-        <p class="text-xs font-medium uppercase tracking-wider text-surface-500">Completion Rate</p>
-        <div class="mt-3 flex items-end gap-2">
-          <span class="text-3xl font-bold text-surface-100">{completionRate}%</span>
-          <span class="mb-1 text-xs text-surface-500">{doneTasks}/{totalTasks} tasks</span>
-        </div>
-        <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-700/60">
-          <div
-            class="h-full rounded-full bg-gradient-to-r from-accent-500 to-green-500 progress-shimmer"
-            style={`width: ${completionRate}%`}
-          />
-        </div>
-      </div>
-
-      <!-- YTD Revenue -->
-      <div class="card p-5">
-        <p class="text-xs font-medium uppercase tracking-wider text-surface-500">YTD Revenue</p>
-        <p class="mt-3 text-3xl font-bold text-surface-100">${revenue.summary.ytd.toLocaleString()}</p>
-        <p class="mt-1 text-xs text-surface-500">Q1 2026</p>
-      </div>
-
-      <!-- Active Clients -->
-      <div class="card p-5">
-        <p class="text-xs font-medium uppercase tracking-wider text-surface-500">Active Clients</p>
-        <div class="mt-3 flex items-center gap-3">
-          <span class="text-3xl font-bold text-surface-100">3</span>
-          <div class="flex -space-x-2">
-            <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-900 bg-accent-600 text-[9px] font-bold text-white">SC</div>
-            <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-900 bg-amber-500 text-[9px] font-bold text-white">JW</div>
-            <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-900 bg-green-500 text-[9px] font-bold text-white">DP</div>
-          </div>
-        </div>
-        <p class="mt-1 text-xs text-surface-500">1 lead pending</p>
-      </div>
+    <div id="chart-container" class="relative h-64 sm:h-72">
+      <canvas id="revenueChart"></canvas>
     </div>
   </div>
 
   <!-- Activity Feed + Deadlines Sidebar -->
-  <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 pb-16 lg:pb-0">
+  <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
     <!-- Activity Feed -->
-    <div class="lg:col-span-2 card p-5 sm:p-6">
-      <div class="mb-5 flex items-center justify-between">
-        <div>
-          <h2 class="text-lg font-semibold text-surface-100">Recent Activity</h2>
-          <p class="mt-0.5 text-sm text-surface-400">Latest updates across your projects</p>
-        </div>
-        <a href="/tasks/" class="text-xs font-medium text-accent-400 transition-colors hover:text-accent-300">View all</a>
-      </div>
-
-      <div class="space-y-0">
-        {activityItems.map((item) => (
-          <div class="relative flex gap-4 pb-6 last:pb-0">
-            {item.showLine && (
-              <div class="absolute left-[11px] top-8 h-[calc(100%-16px)] w-px bg-gradient-to-b from-surface-700/70 to-transparent"></div>
-            )}
-            <div class="relative mt-0.5 flex-shrink-0">
-              <div class={item.config.iconBg + ' flex h-[22px] w-[22px] items-center justify-center rounded-full ring-2 ring-surface-900'}>
-                <div class={item.config.dot + ' h-2 w-2 rounded-full'}></div>
-              </div>
-            </div>
-            <div class="flex-1 min-w-0">
-              <p class="text-sm text-surface-200 leading-relaxed">{item.message}</p>
-              <p class="mt-1 text-xs text-surface-500">{item.time}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div class="fd-card lg:col-span-2 p-5 sm:p-6">
+      <h2 class="text-lg font-semibold text-surface-100">Recent Activity</h2>
+      <p class="mt-0.5 mb-5 text-sm text-surface-400">Latest updates across your projects</p>
+      <div id="activity-feed" class="space-y-0"></div>
     </div>
 
     <!-- Upcoming Deadlines -->
-    <div class="card p-5 sm:p-6">
-      <div class="mb-5 flex items-center justify-between">
-        <div>
-          <h2 class="text-lg font-semibold text-surface-100">Upcoming Deadlines</h2>
-          <p class="mt-0.5 text-sm text-surface-400">Tasks sorted by due date</p>
-        </div>
-        <a href="/calendar/" class="text-xs font-medium text-accent-400 transition-colors hover:text-accent-300">Calendar</a>
-      </div>
-
-      <div class="space-y-3">
-        {deadlines.map(task => (
-          <div class="group rounded-lg border border-surface-700/40 bg-surface-900/60 p-3.5 transition-all duration-200 hover:border-surface-600/60 hover:bg-surface-900/80">
-            <div class="flex items-start justify-between gap-2">
-              <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-medium text-surface-200 group-hover:text-surface-100 transition-colors">{task.title}</p>
-                <div class="mt-1 flex items-center gap-1.5">
-                  <span class="h-2 w-2 rounded-full" style={`background-color: ${task.projectColor}`}></span>
-                  <p class="text-xs text-surface-500">{task.projectName}</p>
-                </div>
-              </div>
-              <span class={task.badgeBg + ' ' + task.badgeText + ' flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold'}>
-                {task.label}
-              </span>
-            </div>
-            <div class="mt-2.5 flex items-center gap-1.5 text-xs text-surface-500">
-              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-              </svg>
-              <span>{task.dueDate}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+    <div class="fd-card p-5 sm:p-6">
+      <h2 class="text-lg font-semibold text-surface-100">Upcoming Deadlines</h2>
+      <p class="mt-0.5 mb-5 text-sm text-surface-400">Tasks sorted by due date</p>
+      <div id="deadlines" class="space-y-3"></div>
     </div>
   </div>
 </DashboardLayout>
 
 <script>
+  import { initStore, getProjects, getTasks, getActivity, getRevenue, getClients } from '../lib/store';
   import { Chart, BarController, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
+
   Chart.register(BarController, CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-  const canvas = document.getElementById('revenueChart');
-  if (canvas) {
-    const labels = JSON.parse(canvas.getAttribute('data-labels') || '[]');
-    const revenueData = JSON.parse(canvas.getAttribute('data-revenue') || '[]');
-    const expensesData = JSON.parse(canvas.getAttribute('data-expenses') || '[]');
+  document.addEventListener('DOMContentLoaded', async () => {
+    await initStore();
+    const projects = getProjects();
+    const tasks = getTasks();
+    const activity = getActivity();
+    const revenue = getRevenue();
+    const now = new Date();
 
-    new Chart(canvas, {
-      type: 'bar',
-      data: {
-        labels: labels,
-        datasets: [
-          {
-            label: 'Revenue',
-            data: revenueData,
-            backgroundColor: 'rgba(99, 102, 241, 0.85)',
-            hoverBackgroundColor: '#6366f1',
-            borderRadius: 6,
-            borderSkipped: false,
-            barPercentage: 0.55,
-            categoryPercentage: 0.7,
+    // ── Stat Cards ──────────────────────────────────────────────────────────────
+    const activeProjects = projects.filter(p => p.status === 'in-progress' || p.status === 'review').length;
+    const revenueThisMonth = revenue.summary.thisMonth;
+    const pendingInvoices = revenue.summary.pendingInvoices;
+    const endOfWeek = new Date(now);
+    endOfWeek.setDate(endOfWeek.getDate() + (7 - endOfWeek.getDay()));
+    const tasksDueThisWeek = tasks.filter(t => {
+      if (t.status === 'done') return false;
+      const due = new Date(t.dueDate);
+      return due <= endOfWeek;
+    }).length;
+
+    const revLastMonth = revenue.summary.lastMonth;
+    const revTrend = revLastMonth > 0 ? Math.round(((revenueThisMonth - revLastMonth) / revLastMonth) * 100) : 0;
+    const revTrendClass = revTrend >= 0 ? 'text-green-400' : 'text-red-400';
+    const revTrendLabel = (revTrend >= 0 ? '+' : '') + revTrend + '% vs last month';
+    const revenueFormatted = '$' + revenueThisMonth.toLocaleString();
+    const invoicesFormatted = '$' + pendingInvoices.toLocaleString();
+    const tasksInProgress = tasks.filter(t => t.status === 'in-progress').length;
+
+    const statsGrid = document.getElementById('stats-grid');
+    if (statsGrid) {
+      statsGrid.innerHTML = `
+        <!-- Active Projects -->
+        <div class="fd-card fd-stat-card group p-5 transition-all duration-200" style="--stat-accent: var(--color-accent-500)">
+          <div class="flex items-center justify-between">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-600/15 ring-1 ring-accent-500/10">
+              <svg class="h-5 w-5 text-accent-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
+              </svg>
+            </div>
+            <span class="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[11px] font-medium text-green-400">
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
+              ${projects.length} total
+            </span>
+          </div>
+          <div class="mt-4">
+            <p class="text-3xl font-bold tracking-tight text-surface-100">${activeProjects}</p>
+            <p class="mt-1 text-sm text-surface-400">Active Projects</p>
+          </div>
+        </div>
+
+        <!-- Revenue This Month -->
+        <div class="fd-card fd-stat-card group p-5 transition-all duration-200" style="--stat-accent: var(--color-green-500)">
+          <div class="flex items-center justify-between">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/15 ring-1 ring-green-500/10">
+              <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+            <span class="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${revTrend >= 0 ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}">
+              ${revTrend >= 0
+                ? '<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>'
+                : '<svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-15 15m0 0h11.25M4.5 19.5V8.25" /></svg>'}
+              ${revTrendLabel}
+            </span>
+          </div>
+          <div class="mt-4">
+            <p class="text-3xl font-bold tracking-tight text-surface-100">${revenueFormatted}</p>
+            <p class="mt-1 text-sm text-surface-400">Revenue This Month</p>
+          </div>
+        </div>
+
+        <!-- Pending Invoices -->
+        <div class="fd-card fd-stat-card group p-5 transition-all duration-200" style="--stat-accent: var(--color-amber-500)">
+          <div class="flex items-center justify-between">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15 ring-1 ring-amber-500/10">
+              <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
+              </svg>
+            </div>
+            <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400">
+              <span class="h-1.5 w-1.5 rounded-full bg-amber-400 pulse-dot"></span>
+              ${revenue.summary.overdueInvoices} overdue
+            </span>
+          </div>
+          <div class="mt-4">
+            <p class="text-3xl font-bold tracking-tight text-surface-100">${invoicesFormatted}</p>
+            <p class="mt-1 text-sm text-surface-400">Pending Invoices</p>
+          </div>
+        </div>
+
+        <!-- Tasks Due This Week -->
+        <div class="fd-card fd-stat-card group p-5 transition-all duration-200" style="--stat-accent: var(--color-blue-500)">
+          <div class="flex items-center justify-between">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15 ring-1 ring-blue-500/10">
+              <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+            </div>
+            <span class="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-400">
+              <span class="h-1.5 w-1.5 rounded-full bg-blue-400 pulse-dot"></span>
+              ${tasksInProgress} in progress
+            </span>
+          </div>
+          <div class="mt-4">
+            <p class="text-3xl font-bold tracking-tight text-surface-100">${tasksDueThisWeek}</p>
+            <p class="mt-1 text-sm text-surface-400">Tasks Due This Week</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // ── Empty state check for stats ─────────────────────────────────────────────
+    if (projects.length === 0 && tasks.length === 0) {
+      if (statsGrid) {
+        statsGrid.innerHTML = `
+          <div class="col-span-full rounded-xl border border-surface-700/50 bg-surface-800/60 p-8 text-center">
+            <svg class="mx-auto h-12 w-12 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h2.25M3.75 3h-1.5m1.5 0h16.5m0 0h1.5m-1.5 0v11.25A2.25 2.25 0 0 1 18 16.5h-2.25m-7.5 0h7.5m-7.5 0-1 3m8.5-3 1 3m0 0 .5 1.5m-.5-1.5h-9.5m0 0-.5 1.5M9 11.25v1.5M12 9v3.75m3-6v6" />
+            </svg>
+            <p class="mt-3 text-sm font-medium text-surface-300">No data yet</p>
+            <p class="mt-1 text-sm text-surface-500">Create your first project or task to see stats here.</p>
+          </div>
+        `;
+      }
+    }
+
+    // ── Revenue Chart ───────────────────────────────────────────────────────────
+    const canvas = document.getElementById('revenueChart') as HTMLCanvasElement | null;
+    if (canvas) {
+      const monthly = revenue.monthly;
+      if (monthly.length > 0) {
+        new Chart(canvas, {
+          type: 'bar',
+          data: {
+            labels: monthly.map(m => m.month),
+            datasets: [
+              {
+                label: 'Revenue',
+                data: monthly.map(m => m.revenue),
+                backgroundColor: '#6366f1',
+                borderRadius: 6,
+                borderSkipped: false,
+                barPercentage: 0.6,
+                categoryPercentage: 0.7,
+              },
+              {
+                label: 'Expenses',
+                data: monthly.map(m => m.expenses),
+                backgroundColor: '#475569',
+                borderRadius: 6,
+                borderSkipped: false,
+                barPercentage: 0.6,
+                categoryPercentage: 0.7,
+              },
+            ],
           },
-          {
-            label: 'Expenses',
-            data: expensesData,
-            backgroundColor: 'rgba(71, 85, 105, 0.6)',
-            hoverBackgroundColor: '#475569',
-            borderRadius: 6,
-            borderSkipped: false,
-            barPercentage: 0.55,
-            categoryPercentage: 0.7,
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#1e293b',
-            titleColor: '#e2e8f0',
-            bodyColor: '#94a3b8',
-            borderColor: '#334155',
-            borderWidth: 1,
-            cornerRadius: 8,
-            padding: { x: 14, y: 10 },
-            displayColors: true,
-            boxWidth: 8,
-            boxHeight: 8,
-            boxPadding: 4,
-            usePointStyle: true,
-            callbacks: {
-              label: function(ctx) {
-                return ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString();
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                backgroundColor: '#1e293b',
+                titleColor: '#e2e8f0',
+                bodyColor: '#94a3b8',
+                borderColor: '#334155',
+                borderWidth: 1,
+                cornerRadius: 8,
+                padding: 12,
+                callbacks: {
+                  label: function(ctx: any) {
+                    return ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString();
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                grid: { display: false },
+                ticks: { color: '#64748b', font: { size: 12 } },
+                border: { display: false },
+              },
+              y: {
+                grid: { color: '#334155' },
+                ticks: {
+                  color: '#64748b',
+                  font: { size: 12 },
+                  callback: function(value: any) {
+                    return '$' + Number(value).toLocaleString();
+                  },
+                },
+                border: { display: false },
               },
             },
           },
-        },
-        scales: {
-          x: {
-            grid: { display: false },
-            ticks: { color: '#64748b', font: { size: 12, weight: '500' } },
-            border: { display: false },
-          },
-          y: {
-            grid: { color: 'rgba(51, 65, 85, 0.4)', drawTicks: false },
-            ticks: {
-              color: '#64748b',
-              font: { size: 12 },
-              padding: 8,
-              callback: function(value) {
-                return '$' + Number(value).toLocaleString();
-              },
-            },
-            border: { display: false },
-          },
-        },
-      },
-    });
+        });
+      } else {
+        const container = document.getElementById('chart-container');
+        if (container) {
+          container.innerHTML = `
+            <div class="flex h-full items-center justify-center">
+              <div class="text-center">
+                <svg class="mx-auto h-10 w-10 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75ZM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V8.625ZM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.125Z" />
+                </svg>
+                <p class="mt-2 text-sm text-surface-500">No revenue data yet. Add monthly revenue to see the chart.</p>
+              </div>
+            </div>
+          `;
+        }
+      }
+    }
+
+    // ── Activity Feed ───────────────────────────────────────────────────────────
+    const activityConfig: Record<string, { dot: string; iconBg: string }> = {
+      'task-completed': { dot: 'bg-green-400', iconBg: 'bg-green-500/15' },
+      'payment-received': { dot: 'bg-accent-400', iconBg: 'bg-accent-500/15' },
+      'comment': { dot: 'bg-blue-400', iconBg: 'bg-blue-500/15' },
+      'project-update': { dot: 'bg-amber-400', iconBg: 'bg-amber-500/15' },
+      'milestone': { dot: 'bg-green-400', iconBg: 'bg-green-500/15' },
+      'new-lead': { dot: 'bg-pink-400', iconBg: 'bg-pink-500/15' },
+      'invoice-sent': { dot: 'bg-accent-400', iconBg: 'bg-accent-500/15' },
+    };
+
+    function relativeTime(timestamp: string): string {
+      const diff = now.getTime() - new Date(timestamp).getTime();
+      const minutes = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      if (minutes < 1) return 'Just now';
+      if (minutes < 60) return minutes + 'm ago';
+      if (hours < 24) return hours + 'h ago';
+      if (days === 1) return 'Yesterday';
+      return days + 'd ago';
+    }
+
+    const feedEl = document.getElementById('activity-feed');
+    if (feedEl) {
+      if (activity.length === 0) {
+        feedEl.innerHTML = `
+          <div class="py-6 text-center">
+            <svg class="mx-auto h-10 w-10 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <p class="mt-2 text-sm text-surface-500">No activity yet. Actions you take will appear here.</p>
+          </div>
+        `;
+      } else {
+        feedEl.innerHTML = activity.map((item, i) => {
+          const config = activityConfig[item.type] || { dot: 'bg-surface-400', iconBg: 'bg-surface-700' };
+          const time = relativeTime(item.timestamp);
+          const showLine = i < activity.length - 1;
+          return `
+            <div class="relative flex gap-4 pb-6 ${i === activity.length - 1 ? 'last:pb-0' : ''}">
+              ${showLine ? '<div class="absolute left-[11px] top-8 h-[calc(100%-16px)] w-px bg-gradient-to-b from-surface-700/70 to-transparent"></div>' : ''}
+              <div class="relative mt-0.5 flex-shrink-0">
+                <div class="${config.iconBg} flex h-[22px] w-[22px] items-center justify-center rounded-full ring-2 ring-surface-900">
+                  <div class="${config.dot} h-2 w-2 rounded-full"></div>
+                </div>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm text-surface-200 leading-relaxed">${escapeHtml(item.message)}</p>
+                <p class="mt-1 text-xs text-surface-500">${time}</p>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+    }
+
+    // ── Upcoming Deadlines ──────────────────────────────────────────────────────
+    function getDeadlineBadge(daysRemaining: number) {
+      if (daysRemaining < 0) {
+        return {
+          badgeBg: 'bg-red-500/15',
+          badgeText: 'text-red-400',
+          label: Math.abs(daysRemaining) + 'd overdue',
+        };
+      }
+      if (daysRemaining <= 7) {
+        let label = daysRemaining + 'd left';
+        if (daysRemaining === 0) label = 'Due today';
+        else if (daysRemaining === 1) label = 'Due tomorrow';
+        return {
+          badgeBg: 'bg-amber-500/15',
+          badgeText: 'text-amber-400',
+          label,
+        };
+      }
+      return {
+        badgeBg: 'bg-surface-700/50',
+        badgeText: 'text-surface-300',
+        label: daysRemaining + 'd left',
+      };
+    }
+
+    const deadlinesEl = document.getElementById('deadlines');
+    if (deadlinesEl) {
+      const deadlines = tasks
+        .filter(t => t.status !== 'done')
+        .map(t => {
+          const due = new Date(t.dueDate);
+          const daysRemaining = Math.ceil((due.getTime() - now.getTime()) / 86400000);
+          const projectName = projects.find(p => p.id === t.project)?.title || 'Personal';
+          const badge = getDeadlineBadge(daysRemaining);
+          return { ...t, daysRemaining, projectName, dueObj: due, ...badge };
+        })
+        .sort((a, b) => a.dueObj.getTime() - b.dueObj.getTime());
+
+      if (deadlines.length === 0) {
+        deadlinesEl.innerHTML = `
+          <div class="py-6 text-center">
+            <svg class="mx-auto h-10 w-10 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <p class="mt-2 text-sm text-surface-500">No upcoming deadlines. Add tasks to track due dates.</p>
+          </div>
+        `;
+      } else {
+        deadlinesEl.innerHTML = deadlines.map(task => `
+          <div class="rounded-lg border border-surface-700/40 bg-surface-900/50 p-3.5">
+            <div class="flex items-start justify-between gap-2">
+              <div class="min-w-0 flex-1">
+                <p class="truncate text-sm font-medium text-surface-200">${escapeHtml(task.title)}</p>
+                <p class="mt-0.5 text-xs text-surface-500">${escapeHtml(task.projectName)}</p>
+              </div>
+              <span class="${task.badgeBg} ${task.badgeText} flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold">
+                ${task.label}
+              </span>
+            </div>
+            <div class="mt-2 flex items-center gap-1.5 text-xs text-surface-500">
+              <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+              </svg>
+              <span>${task.dueDate}</span>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+  });
+
+  function escapeHtml(str: string): string {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
   }
 </script>

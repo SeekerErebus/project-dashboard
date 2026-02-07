@@ -6,7 +6,10 @@
     "priority": "high",
     "status": "in-progress",
     "dueDate": "2026-02-07",
-    "description": "Build the product detail page component with image gallery, size selector, and add-to-cart functionality."
+    "description": "Build the product detail page component with image gallery, size selector, and add-to-cart functionality.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-002",
@@ -15,7 +18,10 @@
     "priority": "high",
     "status": "todo",
     "dueDate": "2026-02-12",
-    "description": "Integrate Stripe Elements for payment processing. Set up test mode first, then switch to live keys."
+    "description": "Integrate Stripe Elements for payment processing. Set up test mode first, then switch to live keys.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-003",
@@ -24,7 +30,10 @@
     "priority": "medium",
     "status": "todo",
     "dueDate": "2026-02-15",
-    "description": "Test all pages on mobile breakpoints. Fix any layout issues. Test on iOS Safari and Android Chrome."
+    "description": "Test all pages on mobile breakpoints. Fix any layout issues. Test on iOS Safari and Android Chrome.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-004",
@@ -33,7 +42,10 @@
     "priority": "medium",
     "status": "in-progress",
     "dueDate": "2026-02-08",
-    "description": "Prepare blog layout for client review. Ensure typography scales properly and code blocks render correctly."
+    "description": "Prepare blog layout for client review. Ensure typography scales properly and code blocks render correctly.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-005",
@@ -42,7 +54,10 @@
     "priority": "low",
     "status": "todo",
     "dueDate": "2026-02-10",
-    "description": "Run Lighthouse audit, fix any accessibility issues, prepare handoff documentation with CMS instructions."
+    "description": "Run Lighthouse audit, fix any accessibility issues, prepare handoff documentation with CMS instructions.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-006",
@@ -51,7 +66,10 @@
     "priority": "high",
     "status": "in-progress",
     "dueDate": "2026-02-10",
-    "description": "Configure API health check endpoints. Set up polling intervals and establish baseline latency metrics."
+    "description": "Configure API health check endpoints. Set up polling intervals and establish baseline latency metrics.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-007",
@@ -60,7 +78,10 @@
     "priority": "medium",
     "status": "todo",
     "dueDate": "2026-02-14",
-    "description": "Build reusable chart components for latency, error rate, and throughput visualizations using Chart.js."
+    "description": "Build reusable chart components for latency, error rate, and throughput visualizations using Chart.js.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-008",
@@ -69,7 +90,10 @@
     "priority": "medium",
     "status": "todo",
     "dueDate": "2026-02-21",
-    "description": "Build the alert management interface. Support email and Slack notification channels with threshold configuration."
+    "description": "Build the alert management interface. Support email and Slack notification channels with threshold configuration.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-009",
@@ -78,7 +102,10 @@
     "priority": "high",
     "status": "todo",
     "dueDate": "2026-02-07",
-    "description": "Draft and send project contract with scope, timeline, and payment terms. Include 50% upfront, 50% on delivery."
+    "description": "Draft and send project contract with scope, timeline, and payment terms. Include 50% upfront, 50% on delivery.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-010",
@@ -87,7 +114,10 @@
     "priority": "low",
     "status": "todo",
     "dueDate": "2026-02-12",
-    "description": "Once Meridian project is signed off, add case study to portfolio site with screenshots and testimonial."
+    "description": "Once Meridian project is signed off, add case study to portfolio site with screenshots and testimonial.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": ""
   },
   {
     "id": "task-011",
@@ -96,7 +126,10 @@
     "priority": "high",
     "status": "done",
     "dueDate": "2026-02-01",
-    "description": "Send January invoice for 40 hours of development work on the e-commerce redesign."
+    "description": "Send January invoice for 40 hours of development work on the e-commerce redesign.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": "2026-02-01T09:45:00Z"
   },
   {
     "id": "task-012",
@@ -105,6 +138,9 @@
     "priority": "medium",
     "status": "done",
     "dueDate": "2026-01-30",
-    "description": "Clone repo, set up local Docker environment, configure API test credentials."
+    "description": "Clone repo, set up local Docker environment, configure API test credentials.",
+    "prompt": "",
+    "assignee": "",
+    "completedAt": "2026-01-30T13:00:00Z"
   }
 ]
