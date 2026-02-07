@@ -20,7 +20,7 @@ const tasksDueThisWeek = tasks.filter(t => {
 // Revenue trend vs last month
 const revLastMonth = revenue.summary.lastMonth;
 const revTrend = revLastMonth > 0 ? Math.round(((revenueThisMonth - revLastMonth) / revLastMonth) * 100) : 0;
-const revTrendClass = revTrend >= 0 ? 'text-green-400' : 'text-red-400';
+const revTrendUp = revTrend >= 0;
 const revTrendLabel = (revTrend >= 0 ? '+' : '') + revTrend + '% vs last month';
 const revenueFormatted = '$' + revenueThisMonth.toLocaleString();
 const invoicesFormatted = '$' + pendingInvoices.toLocaleString();
@@ -38,20 +38,20 @@ function relativeTime(timestamp) {
 }
 
 // Activity type config
-const activityDots = {
-  'task-completed': 'bg-green-400',
-  'payment-received': 'bg-accent-400',
-  'comment': 'bg-blue-400',
-  'project-update': 'bg-amber-400',
-  'milestone': 'bg-green-400',
-  'new-lead': 'bg-pink-400',
-  'invoice-sent': 'bg-accent-400',
+const activityConfig = {
+  'task-completed': { dot: 'bg-green-400', icon: 'check', iconBg: 'bg-green-500/15', iconColor: 'text-green-400' },
+  'payment-received': { dot: 'bg-accent-400', icon: 'dollar', iconBg: 'bg-accent-500/15', iconColor: 'text-accent-400' },
+  'comment': { dot: 'bg-blue-400', icon: 'chat', iconBg: 'bg-blue-500/15', iconColor: 'text-blue-400' },
+  'project-update': { dot: 'bg-amber-400', icon: 'update', iconBg: 'bg-amber-500/15', iconColor: 'text-amber-400' },
+  'milestone': { dot: 'bg-green-400', icon: 'flag', iconBg: 'bg-green-500/15', iconColor: 'text-green-400' },
+  'new-lead': { dot: 'bg-pink-400', icon: 'user', iconBg: 'bg-pink-500/15', iconColor: 'text-pink-400' },
+  'invoice-sent': { dot: 'bg-accent-400', icon: 'doc', iconBg: 'bg-accent-500/15', iconColor: 'text-accent-400' },
 };
 
 // Prepare activity data with computed fields
 const activityItems = activity.map((item, i) => ({
   ...item,
-  dot: activityDots[item.type] || 'bg-surface-400',
+  config: activityConfig[item.type] || { dot: 'bg-surface-400', iconBg: 'bg-surface-700', iconColor: 'text-surface-400' },
   time: relativeTime(item.timestamp),
   showLine: i < activity.length - 1,
 }));
@@ -62,6 +62,7 @@ function getDeadlineBadge(daysRemaining) {
     return {
       badgeBg: 'bg-red-500/15',
       badgeText: 'text-red-400',
+      badgeBorder: 'border-red-500/20',
       label: Math.abs(daysRemaining) + 'd overdue',
     };
   }
@@ -72,12 +73,14 @@ function getDeadlineBadge(daysRemaining) {
     return {
       badgeBg: 'bg-amber-500/15',
       badgeText: 'text-amber-400',
+      badgeBorder: 'border-amber-500/20',
       label,
     };
   }
   return {
     badgeBg: 'bg-surface-700/50',
     badgeText: 'text-surface-300',
+    badgeBorder: 'border-surface-700/30',
     label: daysRemaining + 'd left',
   };
 }
@@ -88,8 +91,9 @@ const deadlines = tasks
     const due = new Date(t.dueDate);
     const daysRemaining = Math.ceil((due.getTime() - now.getTime()) / 86400000);
     const projectName = projects.find(p => p.id === t.project)?.title || 'Personal';
+    const projectColor = projects.find(p => p.id === t.project)?.color || '#6366f1';
     const badge = getDeadlineBadge(daysRemaining);
-    return { ...t, daysRemaining, projectName, dueObj: due, ...badge };
+    return { ...t, daysRemaining, projectName, projectColor, dueObj: due, ...badge };
   })
   .sort((a, b) => a.dueObj.getTime() - b.dueObj.getTime());
 
@@ -97,124 +101,195 @@ const deadlines = tasks
 const chartLabels = revenue.monthly.map(m => m.month);
 const chartRevenue = revenue.monthly.map(m => m.revenue);
 const chartExpenses = revenue.monthly.map(m => m.expenses);
+
+// Quick stat: completion rate
+const totalTasks = tasks.length;
+const doneTasks = tasks.filter(t => t.status === 'done').length;
+const completionRate = totalTasks > 0 ? Math.round((doneTasks / totalTasks) * 100) : 0;
 ---
 <DashboardLayout title="Dashboard" active="dashboard">
   <!-- Page Header -->
-  <div class="mb-6">
-    <h1 class="text-2xl font-semibold text-surface-100">Dashboard</h1>
-    <p class="mt-1 text-sm text-surface-400">Welcome back, Jonathan</p>
+  <div class="mb-8">
+    <h1 class="text-2xl font-bold tracking-tight text-surface-100">Dashboard</h1>
+    <p class="mt-1 text-sm text-surface-400">Welcome back, Jonathan. Here is what is happening across your projects.</p>
   </div>
 
   <!-- Stat Cards -->
   <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
     <!-- Active Projects -->
-    <div class="rounded-xl border border-surface-700/50 bg-surface-800/60 p-5">
+    <div class="group card p-5 transition-all duration-200 hover:border-accent-500/30">
       <div class="flex items-center justify-between">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-600/15">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent-600/15 ring-1 ring-accent-500/10">
           <svg class="h-5 w-5 text-accent-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" />
           </svg>
         </div>
-        <span class="text-xs font-medium text-green-400">+1 this month</span>
+        <span class="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-[11px] font-medium text-green-400">
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
+          +1 this month
+        </span>
       </div>
       <div class="mt-4">
-        <p class="text-2xl font-bold text-surface-100">{activeProjects}</p>
+        <p class="text-3xl font-bold tracking-tight text-surface-100">{activeProjects}</p>
         <p class="mt-1 text-sm text-surface-400">Active Projects</p>
       </div>
     </div>
 
     <!-- Revenue This Month -->
-    <div class="rounded-xl border border-surface-700/50 bg-surface-800/60 p-5">
+    <div class="group card p-5 transition-all duration-200 hover:border-green-500/30">
       <div class="flex items-center justify-between">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/15">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/15 ring-1 ring-green-500/10">
           <svg class="h-5 w-5 text-green-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
           </svg>
         </div>
-        <span class={revTrendClass + ' text-xs font-medium'}>
+        <span class:list={[
+          'inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium',
+          revTrendUp ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400',
+        ]}>
+          {revTrendUp ? (
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 19.5l15-15m0 0H8.25m11.25 0v11.25" /></svg>
+          ) : (
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 4.5l-15 15m0 0h11.25M4.5 19.5V8.25" /></svg>
+          )}
           {revTrendLabel}
         </span>
       </div>
       <div class="mt-4">
-        <p class="text-2xl font-bold text-surface-100">{revenueFormatted}</p>
+        <p class="text-3xl font-bold tracking-tight text-surface-100">{revenueFormatted}</p>
         <p class="mt-1 text-sm text-surface-400">Revenue This Month</p>
       </div>
     </div>
 
     <!-- Pending Invoices -->
-    <div class="rounded-xl border border-surface-700/50 bg-surface-800/60 p-5">
+    <div class="group card p-5 transition-all duration-200 hover:border-amber-500/30">
       <div class="flex items-center justify-between">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-500/15 ring-1 ring-amber-500/10">
           <svg class="h-5 w-5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
           </svg>
         </div>
-        <span class="text-xs font-medium text-amber-400">2 outstanding</span>
+        <span class="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-400">
+          <span class="h-1.5 w-1.5 rounded-full bg-amber-400 pulse-dot"></span>
+          2 outstanding
+        </span>
       </div>
       <div class="mt-4">
-        <p class="text-2xl font-bold text-surface-100">{invoicesFormatted}</p>
+        <p class="text-3xl font-bold tracking-tight text-surface-100">{invoicesFormatted}</p>
         <p class="mt-1 text-sm text-surface-400">Pending Invoices</p>
       </div>
     </div>
 
     <!-- Tasks Due This Week -->
-    <div class="rounded-xl border border-surface-700/50 bg-surface-800/60 p-5">
+    <div class="group card p-5 transition-all duration-200 hover:border-blue-500/30">
       <div class="flex items-center justify-between">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15">
+        <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15 ring-1 ring-blue-500/10">
           <svg class="h-5 w-5 text-blue-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
           </svg>
         </div>
-        <span class="text-xs font-medium text-blue-400">3 in progress</span>
+        <span class="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-[11px] font-medium text-blue-400">
+          <span class="h-1.5 w-1.5 rounded-full bg-blue-400 pulse-dot"></span>
+          3 in progress
+        </span>
       </div>
       <div class="mt-4">
-        <p class="text-2xl font-bold text-surface-100">{tasksDueThisWeek}</p>
+        <p class="text-3xl font-bold tracking-tight text-surface-100">{tasksDueThisWeek}</p>
         <p class="mt-1 text-sm text-surface-400">Tasks Due This Week</p>
       </div>
     </div>
   </div>
 
-  <!-- Revenue Chart -->
-  <div class="mt-6 rounded-xl border border-surface-700/50 bg-surface-800/60 p-5 sm:p-6">
-    <div class="mb-4 flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-surface-100">Revenue Overview</h2>
-        <p class="mt-0.5 text-sm text-surface-400">Monthly revenue and expenses</p>
+  <!-- Revenue Chart + Quick Stats -->
+  <div class="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-4">
+    <!-- Revenue Chart -->
+    <div class="card p-5 sm:p-6 xl:col-span-3">
+      <div class="mb-5 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-surface-100">Revenue Overview</h2>
+          <p class="mt-0.5 text-sm text-surface-400">Monthly revenue and expenses</p>
+        </div>
+        <div class="flex items-center gap-4 text-xs text-surface-400">
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-accent-500"></span>Revenue
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="inline-block h-2.5 w-2.5 rounded-sm bg-surface-600"></span>Expenses
+          </span>
+        </div>
       </div>
-      <div class="flex items-center gap-4 text-xs text-surface-400">
-        <span class="flex items-center gap-1.5">
-          <span class="inline-block h-2.5 w-2.5 rounded-sm bg-accent-500"></span>Revenue
-        </span>
-        <span class="flex items-center gap-1.5">
-          <span class="inline-block h-2.5 w-2.5 rounded-sm bg-surface-600"></span>Expenses
-        </span>
+      <div class="relative h-64 sm:h-72">
+        <canvas
+          id="revenueChart"
+          data-labels={JSON.stringify(chartLabels)}
+          data-revenue={JSON.stringify(chartRevenue)}
+          data-expenses={JSON.stringify(chartExpenses)}
+        ></canvas>
       </div>
     </div>
-    <div class="relative h-64 sm:h-72">
-      <canvas
-        id="revenueChart"
-        data-labels={JSON.stringify(chartLabels)}
-        data-revenue={JSON.stringify(chartRevenue)}
-        data-expenses={JSON.stringify(chartExpenses)}
-      ></canvas>
+
+    <!-- Quick Stats Sidebar -->
+    <div class="flex flex-col gap-4">
+      <!-- Completion Rate -->
+      <div class="card p-5">
+        <p class="text-xs font-medium uppercase tracking-wider text-surface-500">Completion Rate</p>
+        <div class="mt-3 flex items-end gap-2">
+          <span class="text-3xl font-bold text-surface-100">{completionRate}%</span>
+          <span class="mb-1 text-xs text-surface-500">{doneTasks}/{totalTasks} tasks</span>
+        </div>
+        <div class="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-700/60">
+          <div
+            class="h-full rounded-full bg-gradient-to-r from-accent-500 to-green-500 progress-shimmer"
+            style={`width: ${completionRate}%`}
+          />
+        </div>
+      </div>
+
+      <!-- YTD Revenue -->
+      <div class="card p-5">
+        <p class="text-xs font-medium uppercase tracking-wider text-surface-500">YTD Revenue</p>
+        <p class="mt-3 text-3xl font-bold text-surface-100">${revenue.summary.ytd.toLocaleString()}</p>
+        <p class="mt-1 text-xs text-surface-500">Q1 2026</p>
+      </div>
+
+      <!-- Active Clients -->
+      <div class="card p-5">
+        <p class="text-xs font-medium uppercase tracking-wider text-surface-500">Active Clients</p>
+        <div class="mt-3 flex items-center gap-3">
+          <span class="text-3xl font-bold text-surface-100">3</span>
+          <div class="flex -space-x-2">
+            <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-900 bg-accent-600 text-[9px] font-bold text-white">SC</div>
+            <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-900 bg-amber-500 text-[9px] font-bold text-white">JW</div>
+            <div class="flex h-7 w-7 items-center justify-center rounded-full border-2 border-surface-900 bg-green-500 text-[9px] font-bold text-white">DP</div>
+          </div>
+        </div>
+        <p class="mt-1 text-xs text-surface-500">1 lead pending</p>
+      </div>
     </div>
   </div>
 
   <!-- Activity Feed + Deadlines Sidebar -->
   <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3 pb-16 lg:pb-0">
     <!-- Activity Feed -->
-    <div class="lg:col-span-2 rounded-xl border border-surface-700/50 bg-surface-800/60 p-5 sm:p-6">
-      <h2 class="text-lg font-semibold text-surface-100">Recent Activity</h2>
-      <p class="mt-0.5 mb-5 text-sm text-surface-400">Latest updates across your projects</p>
+    <div class="lg:col-span-2 card p-5 sm:p-6">
+      <div class="mb-5 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-surface-100">Recent Activity</h2>
+          <p class="mt-0.5 text-sm text-surface-400">Latest updates across your projects</p>
+        </div>
+        <a href="/tasks/" class="text-xs font-medium text-accent-400 transition-colors hover:text-accent-300">View all</a>
+      </div>
 
       <div class="space-y-0">
         {activityItems.map((item) => (
           <div class="relative flex gap-4 pb-6 last:pb-0">
             {item.showLine && (
-              <div class="absolute left-[9px] top-6 h-full w-px bg-surface-700/70"></div>
+              <div class="absolute left-[11px] top-8 h-[calc(100%-16px)] w-px bg-gradient-to-b from-surface-700/70 to-transparent"></div>
             )}
-            <div class="relative mt-1.5 flex-shrink-0">
-              <div class={item.dot + ' h-[18px] w-[18px] rounded-full border-2 border-surface-800'}></div>
+            <div class="relative mt-0.5 flex-shrink-0">
+              <div class={item.config.iconBg + ' flex h-[22px] w-[22px] items-center justify-center rounded-full ring-2 ring-surface-900'}>
+                <div class={item.config.dot + ' h-2 w-2 rounded-full'}></div>
+              </div>
             </div>
             <div class="flex-1 min-w-0">
               <p class="text-sm text-surface-200 leading-relaxed">{item.message}</p>
@@ -226,23 +301,31 @@ const chartExpenses = revenue.monthly.map(m => m.expenses);
     </div>
 
     <!-- Upcoming Deadlines -->
-    <div class="rounded-xl border border-surface-700/50 bg-surface-800/60 p-5 sm:p-6">
-      <h2 class="text-lg font-semibold text-surface-100">Upcoming Deadlines</h2>
-      <p class="mt-0.5 mb-5 text-sm text-surface-400">Tasks sorted by due date</p>
+    <div class="card p-5 sm:p-6">
+      <div class="mb-5 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-semibold text-surface-100">Upcoming Deadlines</h2>
+          <p class="mt-0.5 text-sm text-surface-400">Tasks sorted by due date</p>
+        </div>
+        <a href="/calendar/" class="text-xs font-medium text-accent-400 transition-colors hover:text-accent-300">Calendar</a>
+      </div>
 
       <div class="space-y-3">
         {deadlines.map(task => (
-          <div class="rounded-lg border border-surface-700/40 bg-surface-900/50 p-3.5">
+          <div class="group rounded-lg border border-surface-700/40 bg-surface-900/60 p-3.5 transition-all duration-200 hover:border-surface-600/60 hover:bg-surface-900/80">
             <div class="flex items-start justify-between gap-2">
               <div class="min-w-0 flex-1">
-                <p class="truncate text-sm font-medium text-surface-200">{task.title}</p>
-                <p class="mt-0.5 text-xs text-surface-500">{task.projectName}</p>
+                <p class="truncate text-sm font-medium text-surface-200 group-hover:text-surface-100 transition-colors">{task.title}</p>
+                <div class="mt-1 flex items-center gap-1.5">
+                  <span class="h-2 w-2 rounded-full" style={`background-color: ${task.projectColor}`}></span>
+                  <p class="text-xs text-surface-500">{task.projectName}</p>
+                </div>
               </div>
               <span class={task.badgeBg + ' ' + task.badgeText + ' flex-shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold'}>
                 {task.label}
               </span>
             </div>
-            <div class="mt-2 flex items-center gap-1.5 text-xs text-surface-500">
+            <div class="mt-2.5 flex items-center gap-1.5 text-xs text-surface-500">
               <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
               </svg>
@@ -273,19 +356,21 @@ const chartExpenses = revenue.monthly.map(m => m.expenses);
           {
             label: 'Revenue',
             data: revenueData,
-            backgroundColor: '#6366f1',
+            backgroundColor: 'rgba(99, 102, 241, 0.85)',
+            hoverBackgroundColor: '#6366f1',
             borderRadius: 6,
             borderSkipped: false,
-            barPercentage: 0.6,
+            barPercentage: 0.55,
             categoryPercentage: 0.7,
           },
           {
             label: 'Expenses',
             data: expensesData,
-            backgroundColor: '#475569',
+            backgroundColor: 'rgba(71, 85, 105, 0.6)',
+            hoverBackgroundColor: '#475569',
             borderRadius: 6,
             borderSkipped: false,
-            barPercentage: 0.6,
+            barPercentage: 0.55,
             categoryPercentage: 0.7,
           },
         ],
@@ -302,10 +387,15 @@ const chartExpenses = revenue.monthly.map(m => m.expenses);
             borderColor: '#334155',
             borderWidth: 1,
             cornerRadius: 8,
-            padding: 12,
+            padding: { x: 14, y: 10 },
+            displayColors: true,
+            boxWidth: 8,
+            boxHeight: 8,
+            boxPadding: 4,
+            usePointStyle: true,
             callbacks: {
               label: function(ctx) {
-                return ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString();
+                return ' ' + ctx.dataset.label + ': $' + ctx.parsed.y.toLocaleString();
               },
             },
           },
@@ -313,14 +403,15 @@ const chartExpenses = revenue.monthly.map(m => m.expenses);
         scales: {
           x: {
             grid: { display: false },
-            ticks: { color: '#64748b', font: { size: 12 } },
+            ticks: { color: '#64748b', font: { size: 12, weight: '500' } },
             border: { display: false },
           },
           y: {
-            grid: { color: '#334155' },
+            grid: { color: 'rgba(51, 65, 85, 0.4)', drawTicks: false },
             ticks: {
               color: '#64748b',
               font: { size: 12 },
+              padding: 8,
               callback: function(value) {
                 return '$' + Number(value).toLocaleString();
               },

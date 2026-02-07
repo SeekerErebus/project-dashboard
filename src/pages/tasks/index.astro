@@ -2,6 +2,7 @@
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
 import tasks from '../../data/tasks.json';
 import projects from '../../data/projects.json';
+import timeEntries from '../../data/time-entries.json';
 
 const projectMap = Object.fromEntries(projects.map((p) => [p.id, p]));
 
@@ -34,20 +35,50 @@ function formatDate(dateStr: string | null): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
+// Pre-compute time per task from seed data
+const timeByTask = new Map<string, number>();
+timeEntries.forEach((e) => {
+  timeByTask.set(e.taskId, (timeByTask.get(e.taskId) || 0) + e.durationMinutes);
+});
+
+function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}m`;
+  if (m === 0) return `${h}h`;
+  return `${h}h ${m}m`;
+}
+
 const activeTasks = tasks.filter((t) => t.status !== 'done').length;
 const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.project))];
+
+const priorityColors = {
+  high: 'bg-red-500',
+  medium: 'bg-amber-500',
+  low: 'bg-blue-500',
+};
+const statusLabels = {
+  'todo': 'To Do',
+  'in-progress': 'In Progress',
+  'done': 'Done',
+};
+const statusColors = {
+  'todo': 'text-surface-500',
+  'in-progress': 'text-blue-400',
+  'done': 'text-green-400',
+};
 ---
 
 <DashboardLayout title="Tasks" active="tasks">
   <!-- Header -->
-  <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <div class="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-surface-100">Tasks</h1>
+      <h1 class="text-2xl font-bold tracking-tight text-surface-100">Tasks</h1>
       <p class="mt-1 text-sm text-surface-400">{activeTasks} active tasks, {tasks.length} total</p>
     </div>
     <button
       id="add-task-btn"
-      class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-700"
+      class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-accent-600 to-accent-700 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-accent-600/20 transition-all hover:shadow-accent-600/30 hover:brightness-110"
     >
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -57,7 +88,7 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
   </div>
 
   <!-- Add Task Form (hidden by default) -->
-  <div id="add-task-form" class="mb-6 hidden rounded-xl border border-surface-700/50 bg-surface-900 p-5">
+  <div id="add-task-form" class="mb-6 hidden card p-5">
     <h3 class="mb-4 text-sm font-semibold text-surface-200">New Task</h3>
     <form id="new-task-form" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div class="sm:col-span-2 lg:col-span-4">
@@ -66,13 +97,13 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
           id="task-title-input"
           placeholder="Task title..."
           required
-          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+          class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 transition-all focus:border-accent-500/60 focus:bg-surface-800/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40"
         />
       </div>
       <div>
         <select
           id="task-project-input"
-          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+          class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-2 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:bg-surface-800/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40"
         >
           <option value="">No project</option>
           {projects.map((p) => (
@@ -83,7 +114,7 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
       <div>
         <select
           id="task-priority-input"
-          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+          class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-2 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:bg-surface-800/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40"
         >
           <option value="medium">Medium Priority</option>
           <option value="high">High Priority</option>
@@ -94,7 +125,7 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
         <input
           type="date"
           id="task-date-input"
-          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+          class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-2 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:bg-surface-800/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40"
         />
       </div>
       <div class="flex items-end gap-2">
@@ -116,7 +147,7 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
   </div>
 
   <!-- Filter Bar -->
-  <div class="mb-4 flex flex-wrap gap-3 rounded-xl border border-surface-700/50 bg-surface-900 p-4">
+  <div class="mb-4 flex flex-wrap gap-3 card p-4">
     <!-- Project Filter -->
     <div class="flex flex-wrap items-center gap-2">
       <span class="text-xs font-medium uppercase tracking-wider text-surface-500">Project</span>
@@ -165,30 +196,21 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
   <div id="task-list" class="space-y-2">
     {sortedTasks.map((task) => {
       const proj = task.project ? projectMap[task.project] : null;
-      const priorityColors = {
-        high: 'bg-red-500',
-        medium: 'bg-amber-500',
-        low: 'bg-blue-500',
-      };
-      const statusLabels = {
-        'todo': 'To Do',
-        'in-progress': 'In Progress',
-        'done': 'Done',
-      };
-      const statusColors = {
-        'todo': 'text-surface-500',
-        'in-progress': 'text-blue-400',
-        'done': 'text-green-400',
-      };
+      const taskMinutes = timeByTask.get(task.id) || 0;
       return (
         <div
           class:list={[
-            'task-item group flex items-center gap-3 rounded-xl border border-surface-700/50 bg-surface-900 p-4 transition-colors hover:border-surface-600',
+            'task-item group flex items-center gap-3 rounded-xl border border-surface-700/50 bg-surface-900/80 p-4 transition-all duration-200 hover:border-surface-600 hover:bg-surface-900 cursor-pointer',
             task.status === 'done' && 'opacity-50',
           ]}
+          data-task-id={task.id}
           data-project={task.project || 'none'}
           data-priority={task.priority}
           data-status={task.status}
+          data-description={task.description || ''}
+          data-due-date={task.dueDate || ''}
+          data-title={task.title}
+          data-seed-minutes={taskMinutes}
         >
           <!-- Checkbox -->
           <button
@@ -210,14 +232,27 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
           <!-- Priority Badge -->
           <span class={`h-2 w-2 flex-shrink-0 rounded-full ${priorityColors[task.priority] || 'bg-surface-500'}`} title={task.priority}></span>
 
-          <!-- Title -->
-          <span class:list={['flex-1 text-sm font-medium', task.status === 'done' ? 'text-surface-500 line-through' : 'text-surface-200']}>
+          <!-- Title (clickable for detail) -->
+          <button
+            class:list={[
+              'task-title-btn flex-1 text-left text-sm font-medium transition-colors truncate',
+              task.status === 'done' ? 'text-surface-500 line-through' : 'text-surface-200 hover:text-accent-400',
+            ]}
+          >
             {task.title}
+          </button>
+
+          <!-- Time Logged Badge -->
+          <span class="task-time-badge hidden items-center gap-1 rounded-md bg-surface-800/80 px-2 py-1 text-xs font-medium text-surface-400 sm:flex" data-task-id={task.id}>
+            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+            </svg>
+            <span class="time-display">{taskMinutes > 0 ? formatDuration(taskMinutes) : '0m'}</span>
           </span>
 
           <!-- Project -->
           {proj && (
-            <span class="hidden items-center gap-1.5 text-xs text-surface-400 sm:flex">
+            <span class="hidden items-center gap-1.5 text-xs text-surface-400 lg:flex">
               <span class="h-2 w-2 rounded-full" style={`background-color: ${proj.color}`}></span>
               {proj.title}
             </span>
@@ -244,6 +279,91 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
     </svg>
     <p class="mt-3 text-sm text-surface-400">No tasks match the current filters.</p>
   </div>
+
+  <!-- Task Detail Slide-Over Panel -->
+  <div id="task-detail-overlay" class="fixed inset-0 z-50 hidden bg-surface-950/60 backdrop-blur-sm" aria-hidden="true"></div>
+  <div id="task-detail-panel" class="fixed inset-y-0 right-0 z-50 hidden w-full max-w-md transform translate-x-full border-l border-surface-700/50 bg-surface-900 shadow-2xl shadow-black/40 transition-transform duration-300 ease-in-out overflow-y-auto">
+    <!-- Panel Header -->
+    <div class="sticky top-0 z-10 flex items-center justify-between border-b border-surface-700/50 bg-surface-900/95 backdrop-blur-sm px-6 py-4">
+      <h2 id="detail-panel-title" class="text-base font-semibold text-surface-100 truncate pr-4">Task Detail</h2>
+      <button id="close-detail-btn" class="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+      </button>
+    </div>
+
+    <!-- Panel Content -->
+    <div class="px-6 py-5 space-y-6">
+      <!-- Task Info -->
+      <div>
+        <div class="flex items-center gap-2 mb-2">
+          <span id="detail-priority-badge" class="h-2.5 w-2.5 rounded-full"></span>
+          <span id="detail-status" class="text-xs font-medium"></span>
+        </div>
+        <p id="detail-description" class="text-sm text-surface-400 leading-relaxed"></p>
+        <div id="detail-due-date" class="mt-2 flex items-center gap-1.5 text-xs text-surface-500">
+          <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
+          </svg>
+          <span id="detail-due-date-text"></span>
+        </div>
+      </div>
+
+      <!-- Timer Section -->
+      <div class="card p-4">
+        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-500">Timer</h3>
+        <div class="flex items-center justify-between">
+          <div>
+            <p id="detail-timer-display" class="text-2xl font-bold text-surface-100">00:00:00</p>
+            <p id="detail-timer-status" class="mt-0.5 text-xs text-surface-500">Stopped</p>
+          </div>
+          <div class="flex gap-2">
+            <button
+              id="detail-timer-toggle"
+              class="flex h-10 w-10 items-center justify-center rounded-full bg-accent-600 text-white shadow-lg shadow-accent-600/20 transition-all hover:bg-accent-700 hover:shadow-accent-600/30"
+              aria-label="Start timer"
+            >
+              <svg id="timer-play-icon" class="h-4 w-4 ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.347a1.125 1.125 0 0 1 0 1.972l-11.54 6.347a1.125 1.125 0 0 1-1.667-.986V5.653Z" />
+              </svg>
+              <svg id="timer-stop-icon" class="hidden h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path fill-rule="evenodd" d="M4.5 7.5a3 3 0 0 1 3-3h9a3 3 0 0 1 3 3v9a3 3 0 0 1-3 3h-9a3 3 0 0 1-3-3v-9Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Total Time Logged -->
+      <div class="card p-4">
+        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-500">Time Logged</h3>
+        <p id="detail-total-time" class="text-xl font-bold text-surface-100">0m</p>
+
+        <!-- Recent entries for this task -->
+        <div id="detail-entries-list" class="mt-3 space-y-2">
+        </div>
+      </div>
+
+      <!-- Manual Time Entry -->
+      <div class="card p-4">
+        <h3 class="mb-3 text-xs font-semibold uppercase tracking-wider text-surface-500">Log Time Manually</h3>
+        <form id="detail-manual-form" class="flex gap-2">
+          <div class="flex-1">
+            <label class="mb-1 block text-[10px] font-medium text-surface-500">Hours</label>
+            <input type="number" id="detail-hours" min="0" max="24" value="0" class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-1.5 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40" />
+          </div>
+          <div class="flex-1">
+            <label class="mb-1 block text-[10px] font-medium text-surface-500">Minutes</label>
+            <input type="number" id="detail-minutes" min="0" max="59" value="30" class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 px-3 py-1.5 text-sm text-surface-200 transition-all focus:border-accent-500/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40" />
+          </div>
+          <div class="flex items-end">
+            <button type="submit" class="rounded-lg bg-accent-600 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-accent-700">
+              Log
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
 </DashboardLayout>
 
 <style>
@@ -259,10 +379,112 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
     background-color: var(--color-accent-600);
     color: white;
   }
+  #task-detail-panel.open {
+    transform: translateX(0);
+  }
 </style>
 
 <script>
-  // --- Filter logic ---
+  // ── localStorage Keys ──────────────────────────────────────────────────
+  const STORAGE_KEY = 'fd-time-entries';
+  const TIMER_KEY = 'fd-active-timer';
+
+  interface TimeEntry {
+    id: string;
+    taskId: string;
+    projectId: string | null;
+    description: string;
+    startTime: string;
+    endTime: string;
+    durationMinutes: number;
+    manual: boolean;
+  }
+
+  interface ActiveTimer {
+    taskId: string;
+    projectId: string | null;
+    startTime: string;
+  }
+
+  // Task-to-project mapping
+  const taskProjectMap: Record<string, string | null> = {
+    'task-001': 'proj-001',
+    'task-002': 'proj-001',
+    'task-003': 'proj-001',
+    'task-004': 'proj-002',
+    'task-005': 'proj-002',
+    'task-006': 'proj-003',
+    'task-007': 'proj-003',
+    'task-008': 'proj-003',
+    'task-009': 'proj-004',
+    'task-010': null,
+    'task-011': 'proj-001',
+    'task-012': 'proj-003',
+  };
+
+  function getStoredEntries(): TimeEntry[] {
+    try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+    catch { return []; }
+  }
+
+  function saveEntries(entries: TimeEntry[]) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+  }
+
+  function getActiveTimer(): ActiveTimer | null {
+    try {
+      const d = localStorage.getItem(TIMER_KEY);
+      return d ? JSON.parse(d) : null;
+    } catch { return null; }
+  }
+
+  function setActiveTimer(timer: ActiveTimer | null) {
+    if (timer) localStorage.setItem(TIMER_KEY, JSON.stringify(timer));
+    else localStorage.removeItem(TIMER_KEY);
+  }
+
+  function formatDuration(minutes: number): string {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m}m`;
+    if (m === 0) return `${h}h`;
+    return `${h}h ${m}m`;
+  }
+
+  function formatTimerDisplay(ms: number): string {
+    const totalSec = Math.floor(ms / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  }
+
+  // ── Get total time for a task (seed + localStorage) ────────────────────
+  function getTaskTotalMinutes(taskId: string, seedMinutes: number): number {
+    const stored = getStoredEntries().filter((e) => e.taskId === taskId);
+    const storedMinutes = stored.reduce((sum, e) => sum + e.durationMinutes, 0);
+    return seedMinutes + storedMinutes;
+  }
+
+  function getTaskEntries(taskId: string): { description: string; durationMinutes: number; manual: boolean; startTime: string }[] {
+    return getStoredEntries().filter((e) => e.taskId === taskId);
+  }
+
+  // ── Update time badges on task cards ───────────────────────────────────
+  function updateTimeBadges() {
+    document.querySelectorAll('.task-time-badge').forEach((badge) => {
+      const el = badge as HTMLElement;
+      const taskId = el.dataset.taskId;
+      if (!taskId) return;
+      const taskItem = el.closest('.task-item') as HTMLElement;
+      const seedMinutes = parseInt(taskItem?.dataset.seedMinutes || '0');
+      const total = getTaskTotalMinutes(taskId, seedMinutes);
+      const display = el.querySelector('.time-display');
+      if (display) display.textContent = total > 0 ? formatDuration(total) : '0m';
+    });
+  }
+
+  // ── Filter logic ───────────────────────────────────────────────────────
   let activeProject = 'all';
   let activePriority = 'all';
   let activeStatus = 'all';
@@ -284,7 +506,6 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
     if (emptyState) emptyState.classList.toggle('hidden', visibleCount > 0);
   }
 
-  // Project filters
   document.querySelectorAll('.filter-project').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-project').forEach((b) => b.classList.remove('active'));
@@ -294,7 +515,6 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
     });
   });
 
-  // Priority filters
   document.querySelectorAll('.filter-priority').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-priority').forEach((b) => b.classList.remove('active'));
@@ -304,7 +524,6 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
     });
   });
 
-  // Status filters
   document.querySelectorAll('.filter-status').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.filter-status').forEach((b) => b.classList.remove('active'));
@@ -314,9 +533,10 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
     });
   });
 
-  // --- Checkbox toggle ---
+  // ── Checkbox toggle ────────────────────────────────────────────────────
   document.querySelectorAll('.task-checkbox').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const taskItem = btn.closest('.task-item') as HTMLElement;
       if (!taskItem) return;
       const isDone = taskItem.dataset.status === 'done';
@@ -327,19 +547,18 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
         btn.classList.remove('border-green-500', 'bg-green-500');
         btn.classList.add('border-surface-600');
         btn.innerHTML = '';
-        const title = taskItem.querySelector('span.flex-1');
+        const title = taskItem.querySelector('.task-title-btn');
         if (title) {
           title.classList.remove('text-surface-500', 'line-through');
           title.classList.add('text-surface-200');
         }
-        const statusLabel = taskItem.querySelector('span.hidden.md\\:block:last-child');
       } else {
         taskItem.dataset.status = 'done';
         taskItem.classList.add('opacity-50');
         btn.classList.remove('border-surface-600');
         btn.classList.add('border-green-500', 'bg-green-500');
         btn.innerHTML = '<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>';
-        const title = taskItem.querySelector('span.flex-1');
+        const title = taskItem.querySelector('.task-title-btn');
         if (title) {
           title.classList.remove('text-surface-200');
           title.classList.add('text-surface-500', 'line-through');
@@ -349,7 +568,7 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
     });
   });
 
-  // --- Add task form toggle ---
+  // ── Add task form toggle ───────────────────────────────────────────────
   const addBtn = document.getElementById('add-task-btn');
   const addForm = document.getElementById('add-task-form');
   const cancelBtn = document.getElementById('cancel-task-btn');
@@ -362,17 +581,14 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
     addForm?.classList.add('hidden');
   });
 
-  // --- Add task submission ---
-  const projectsData = {};
-  const projectSelects = document.querySelectorAll('#task-project-input option');
-  // We'll use inline data for project lookup
-  const projectColors = {
+  // ── Add task submission ────────────────────────────────────────────────
+  const projectColors: Record<string, string> = {
     'proj-001': '#6366f1',
     'proj-002': '#f59e0b',
     'proj-003': '#22c55e',
     'proj-004': '#ec4899',
   };
-  const projectTitles = {
+  const projectTitles: Record<string, string> = {
     'proj-001': 'E-Commerce Redesign',
     'proj-002': 'Brand Identity & Website',
     'proj-003': 'API Integration Dashboard',
@@ -388,7 +604,7 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
 
     if (!title.trim()) return;
 
-    const priorityColorMap = {
+    const priorityColorMap: Record<string, string> = {
       high: 'bg-red-500',
       medium: 'bg-amber-500',
       low: 'bg-blue-500',
@@ -396,7 +612,7 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
 
     let projectHtml = '';
     if (project && projectColors[project]) {
-      projectHtml = `<span class="hidden items-center gap-1.5 text-xs text-surface-400 sm:flex">
+      projectHtml = `<span class="hidden items-center gap-1.5 text-xs text-surface-400 lg:flex">
         <span class="h-2 w-2 rounded-full" style="background-color: ${projectColors[project]}"></span>
         ${projectTitles[project]}
       </span>`;
@@ -409,15 +625,29 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
       dueDateHtml = `<span class="hidden text-xs text-surface-400 sm:block">${formatted}</span>`;
     }
 
+    const taskId = 'task-new-' + Date.now();
     const newTask = document.createElement('div');
-    newTask.className = 'task-item group flex items-center gap-3 rounded-xl border border-surface-700/50 bg-surface-900 p-4 transition-colors hover:border-surface-600';
+    newTask.className = 'task-item group flex items-center gap-3 rounded-xl border border-surface-700/50 bg-surface-900 p-4 transition-all duration-200 hover:border-surface-600 cursor-pointer';
+    newTask.dataset.taskId = taskId;
     newTask.dataset.project = project || 'none';
     newTask.dataset.priority = priority;
     newTask.dataset.status = 'todo';
+    newTask.dataset.description = '';
+    newTask.dataset.dueDate = dueDate || '';
+    newTask.dataset.title = title;
+    newTask.dataset.seedMinutes = '0';
+
+    // Also register in project map for timer
+    if (project) taskProjectMap[taskId] = project;
+
     newTask.innerHTML = `
       <button class="task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-600 hover:border-accent-400 transition-colors" aria-label="Toggle task"></button>
       <span class="h-2 w-2 flex-shrink-0 rounded-full ${priorityColorMap[priority] || 'bg-surface-500'}" title="${priority}"></span>
-      <span class="flex-1 text-sm font-medium text-surface-200">${title}</span>
+      <button class="task-title-btn flex-1 text-left text-sm font-medium text-surface-200 hover:text-accent-400 transition-colors truncate">${title}</button>
+      <span class="task-time-badge hidden items-center gap-1 rounded-md bg-surface-800/80 px-2 py-1 text-xs font-medium text-surface-400 sm:flex" data-task-id="${taskId}">
+        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+        <span class="time-display">0m</span>
+      </span>
       ${projectHtml}
       ${dueDateHtml}
       <span class="hidden text-xs font-medium text-surface-500 md:block">To Do</span>
@@ -437,23 +667,316 @@ const uniqueProjects = [...new Set(tasks.filter((t) => t.project).map((t) => t.p
     (document.getElementById('task-date-input') as HTMLInputElement).value = '';
     addForm?.classList.add('hidden');
 
-    // Attach checkbox listener to new task
-    newTask.querySelector('.task-checkbox')?.addEventListener('click', function () {
-      const taskItem = (this as HTMLElement).closest('.task-item') as HTMLElement;
+    // Attach listeners to new task
+    attachTaskListeners(newTask);
+    applyFilters();
+  });
+
+  // ── Task Detail Panel ──────────────────────────────────────────────────
+  const detailOverlay = document.getElementById('task-detail-overlay');
+  const detailPanel = document.getElementById('task-detail-panel');
+  const closeDetailBtn = document.getElementById('close-detail-btn');
+  const detailTitle = document.getElementById('detail-panel-title');
+  const detailPriority = document.getElementById('detail-priority-badge');
+  const detailStatus = document.getElementById('detail-status');
+  const detailDescription = document.getElementById('detail-description');
+  const detailDueDateText = document.getElementById('detail-due-date-text');
+  const detailTimerDisplay = document.getElementById('detail-timer-display');
+  const detailTimerStatus = document.getElementById('detail-timer-status');
+  const detailTimerToggle = document.getElementById('detail-timer-toggle');
+  const timerPlayIcon = document.getElementById('timer-play-icon');
+  const timerStopIcon = document.getElementById('timer-stop-icon');
+  const detailTotalTime = document.getElementById('detail-total-time');
+  const detailEntriesList = document.getElementById('detail-entries-list');
+
+  let currentTaskId: string | null = null;
+  let timerInterval: ReturnType<typeof setInterval> | null = null;
+
+  const priorityLabels: Record<string, string> = { high: 'High', medium: 'Medium', low: 'Low' };
+  const priorityColorClasses: Record<string, string> = { high: 'bg-red-500', medium: 'bg-amber-500', low: 'bg-blue-500' };
+  const statusLabelMap: Record<string, string> = { 'todo': 'To Do', 'in-progress': 'In Progress', 'done': 'Done' };
+  const statusColorMap: Record<string, string> = { 'todo': 'text-surface-500', 'in-progress': 'text-blue-400', 'done': 'text-green-400' };
+
+  function openDetailPanel(taskItem: HTMLElement) {
+    const taskId = taskItem.dataset.taskId || '';
+    currentTaskId = taskId;
+
+    // Populate panel
+    if (detailTitle) detailTitle.textContent = taskItem.dataset.title || 'Task';
+    if (detailPriority) {
+      detailPriority.className = `h-2.5 w-2.5 rounded-full ${priorityColorClasses[taskItem.dataset.priority || 'medium'] || 'bg-surface-500'}`;
+    }
+    if (detailStatus) {
+      const status = taskItem.dataset.status || 'todo';
+      detailStatus.textContent = `${priorityLabels[taskItem.dataset.priority || 'medium']} Priority / ${statusLabelMap[status] || status}`;
+      detailStatus.className = `text-xs font-medium ${statusColorMap[status] || 'text-surface-400'}`;
+    }
+    if (detailDescription) {
+      detailDescription.textContent = taskItem.dataset.description || 'No description.';
+    }
+    if (detailDueDateText) {
+      const dd = taskItem.dataset.dueDate;
+      detailDueDateText.textContent = dd ? new Date(dd).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : 'No due date';
+    }
+
+    // Update time info
+    updateDetailTimeInfo(taskId, parseInt(taskItem.dataset.seedMinutes || '0'));
+
+    // Update timer state
+    updateDetailTimerState(taskId);
+
+    // Show panel
+    detailOverlay?.classList.remove('hidden');
+    detailPanel?.classList.remove('hidden');
+    requestAnimationFrame(() => {
+      detailPanel?.classList.add('open');
+    });
+
+    // Start timer display update
+    if (timerInterval) clearInterval(timerInterval);
+    timerInterval = setInterval(() => {
+      if (currentTaskId) updateDetailTimerState(currentTaskId);
+    }, 1000);
+  }
+
+  function closeDetailPanel() {
+    detailPanel?.classList.remove('open');
+    setTimeout(() => {
+      detailOverlay?.classList.add('hidden');
+      detailPanel?.classList.add('hidden');
+    }, 300);
+    if (timerInterval) clearInterval(timerInterval);
+    currentTaskId = null;
+    updateTimeBadges();
+  }
+
+  function updateDetailTimeInfo(taskId: string, seedMinutes: number) {
+    const total = getTaskTotalMinutes(taskId, seedMinutes);
+    if (detailTotalTime) detailTotalTime.textContent = formatDuration(total);
+
+    // Show entries
+    if (detailEntriesList) {
+      const entries = getTaskEntries(taskId);
+      if (entries.length === 0) {
+        detailEntriesList.innerHTML = '<p class="text-xs text-surface-500">No additional entries logged yet.</p>';
+      } else {
+        detailEntriesList.innerHTML = entries
+          .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
+          .slice(0, 5)
+          .map((e) => {
+            const d = new Date(e.startTime);
+            const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            return `<div class="flex items-center justify-between rounded-lg border border-surface-700/30 bg-surface-800/30 px-3 py-2">
+              <div class="flex items-center gap-2">
+                <span class="h-1.5 w-1.5 rounded-full ${e.manual ? 'bg-amber-400' : 'bg-accent-400'}"></span>
+                <span class="text-xs text-surface-400">${e.description || (e.manual ? 'Manual entry' : 'Timer')}</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs text-surface-500">${dateStr}</span>
+                <span class="text-xs font-medium text-surface-300">${formatDuration(e.durationMinutes)}</span>
+              </div>
+            </div>`;
+          })
+          .join('');
+      }
+    }
+  }
+
+  function updateDetailTimerState(taskId: string) {
+    const timer = getActiveTimer();
+    const isRunning = timer && timer.taskId === taskId;
+
+    if (isRunning) {
+      const elapsed = Date.now() - new Date(timer.startTime).getTime();
+      if (detailTimerDisplay) detailTimerDisplay.textContent = formatTimerDisplay(elapsed);
+      if (detailTimerStatus) {
+        detailTimerStatus.textContent = 'Running';
+        detailTimerStatus.className = 'mt-0.5 text-xs text-green-400';
+      }
+      timerPlayIcon?.classList.add('hidden');
+      timerStopIcon?.classList.remove('hidden');
+      if (detailTimerToggle) {
+        detailTimerToggle.classList.remove('bg-accent-600', 'hover:bg-accent-700', 'shadow-accent-600/20', 'hover:shadow-accent-600/30');
+        detailTimerToggle.classList.add('bg-red-600', 'hover:bg-red-700', 'shadow-red-600/20', 'hover:shadow-red-600/30');
+      }
+    } else {
+      if (detailTimerDisplay) detailTimerDisplay.textContent = '00:00:00';
+      if (detailTimerStatus) {
+        detailTimerStatus.textContent = 'Stopped';
+        detailTimerStatus.className = 'mt-0.5 text-xs text-surface-500';
+      }
+      timerPlayIcon?.classList.remove('hidden');
+      timerStopIcon?.classList.add('hidden');
+      if (detailTimerToggle) {
+        detailTimerToggle.classList.remove('bg-red-600', 'hover:bg-red-700', 'shadow-red-600/20', 'hover:shadow-red-600/30');
+        detailTimerToggle.classList.add('bg-accent-600', 'hover:bg-accent-700', 'shadow-accent-600/20', 'hover:shadow-accent-600/30');
+      }
+    }
+  }
+
+  // ── Timer Toggle ───────────────────────────────────────────────────────
+  detailTimerToggle?.addEventListener('click', () => {
+    if (!currentTaskId) return;
+    const timer = getActiveTimer();
+    const isRunning = timer && timer.taskId === currentTaskId;
+
+    if (isRunning) {
+      // Stop timer, save entry
+      const elapsed = Date.now() - new Date(timer.startTime).getTime();
+      const minutes = Math.max(1, Math.round(elapsed / 60000));
+      const entry: TimeEntry = {
+        id: 'te-timer-' + Date.now(),
+        taskId: currentTaskId,
+        projectId: taskProjectMap[currentTaskId] || null,
+        description: 'Timer session',
+        startTime: timer.startTime,
+        endTime: new Date().toISOString(),
+        durationMinutes: minutes,
+        manual: false,
+      };
+      const entries = getStoredEntries();
+      entries.push(entry);
+      saveEntries(entries);
+      setActiveTimer(null);
+      showToast(`Logged ${formatDuration(minutes)} via timer`);
+
+      // Refresh detail panel
+      const taskItem = document.querySelector(`.task-item[data-task-id="${currentTaskId}"]`) as HTMLElement;
+      const seedMinutes = parseInt(taskItem?.dataset.seedMinutes || '0');
+      updateDetailTimeInfo(currentTaskId, seedMinutes);
+      updateDetailTimerState(currentTaskId);
+      updateTimeBadges();
+    } else {
+      // If another timer is running, stop it first
+      if (timer) {
+        const elapsed = Date.now() - new Date(timer.startTime).getTime();
+        const minutes = Math.max(1, Math.round(elapsed / 60000));
+        const entry: TimeEntry = {
+          id: 'te-timer-' + Date.now(),
+          taskId: timer.taskId,
+          projectId: timer.projectId,
+          description: 'Timer session (auto-stopped)',
+          startTime: timer.startTime,
+          endTime: new Date().toISOString(),
+          durationMinutes: minutes,
+          manual: false,
+        };
+        const entries = getStoredEntries();
+        entries.push(entry);
+        saveEntries(entries);
+      }
+
+      // Start new timer
+      setActiveTimer({
+        taskId: currentTaskId,
+        projectId: taskProjectMap[currentTaskId] || null,
+        startTime: new Date().toISOString(),
+      });
+      updateDetailTimerState(currentTaskId);
+    }
+  });
+
+  // ── Manual Entry from Detail Panel ─────────────────────────────────────
+  document.getElementById('detail-manual-form')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if (!currentTaskId) return;
+
+    const hours = parseInt((document.getElementById('detail-hours') as HTMLInputElement).value) || 0;
+    const minutes = parseInt((document.getElementById('detail-minutes') as HTMLInputElement).value) || 0;
+    const totalMinutes = hours * 60 + minutes;
+    if (totalMinutes <= 0) return;
+
+    const entry: TimeEntry = {
+      id: 'te-manual-' + Date.now(),
+      taskId: currentTaskId,
+      projectId: taskProjectMap[currentTaskId] || null,
+      description: 'Manual time entry',
+      startTime: new Date().toISOString(),
+      endTime: new Date().toISOString(),
+      durationMinutes: totalMinutes,
+      manual: true,
+    };
+
+    const entries = getStoredEntries();
+    entries.push(entry);
+    saveEntries(entries);
+
+    // Refresh
+    const taskItem = document.querySelector(`.task-item[data-task-id="${currentTaskId}"]`) as HTMLElement;
+    const seedMinutes = parseInt(taskItem?.dataset.seedMinutes || '0');
+    updateDetailTimeInfo(currentTaskId, seedMinutes);
+    updateTimeBadges();
+    showToast(`Logged ${formatDuration(totalMinutes)} manually`);
+
+    // Reset form
+    (document.getElementById('detail-hours') as HTMLInputElement).value = '0';
+    (document.getElementById('detail-minutes') as HTMLInputElement).value = '30';
+  });
+
+  // ── Close panel ────────────────────────────────────────────────────────
+  closeDetailBtn?.addEventListener('click', closeDetailPanel);
+  detailOverlay?.addEventListener('click', closeDetailPanel);
+
+  // ── Attach task click listeners ────────────────────────────────────────
+  function attachTaskListeners(taskEl: Element) {
+    // Click on task title opens detail panel
+    const titleBtn = taskEl.querySelector('.task-title-btn');
+    titleBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openDetailPanel(taskEl as HTMLElement);
+    });
+
+    // Click on row (but not checkbox/title) also opens panel
+    taskEl.addEventListener('click', (e) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('.task-checkbox')) return;
+      openDetailPanel(taskEl as HTMLElement);
+    });
+
+    // Checkbox for new tasks
+    const checkbox = taskEl.querySelector('.task-checkbox');
+    checkbox?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const taskItem = checkbox.closest('.task-item') as HTMLElement;
       if (!taskItem) return;
       taskItem.dataset.status = 'done';
       taskItem.classList.add('opacity-50');
-      (this as HTMLElement).classList.remove('border-surface-600');
-      (this as HTMLElement).classList.add('border-green-500', 'bg-green-500');
-      (this as HTMLElement).innerHTML = '<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>';
-      const titleEl = taskItem.querySelector('span.flex-1');
+      checkbox.classList.remove('border-surface-600');
+      checkbox.classList.add('border-green-500', 'bg-green-500');
+      checkbox.innerHTML = '<svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>';
+      const titleEl = taskItem.querySelector('.task-title-btn');
       if (titleEl) {
         titleEl.classList.remove('text-surface-200');
         titleEl.classList.add('text-surface-500', 'line-through');
       }
       applyFilters();
     });
+  }
 
-    applyFilters();
+  // Attach listeners to existing task items
+  document.querySelectorAll('.task-item').forEach(attachTaskListeners);
+
+  // ── Toast Helper ───────────────────────────────────────────────────────
+  function showToast(message: string) {
+    const toast = document.createElement('div');
+    toast.className = 'fixed bottom-6 right-6 z-[70] rounded-lg border border-green-500/30 bg-green-500/15 px-4 py-3 text-sm font-medium text-green-400 shadow-lg backdrop-blur-sm transition-all duration-300';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      setTimeout(() => toast.remove(), 300);
+    }, 2500);
+  }
+
+  // ── Escape to close panel ──────────────────────────────────────────────
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && currentTaskId) {
+      closeDetailPanel();
+      e.stopPropagation();
+    }
   });
+
+  // ── Initialize ─────────────────────────────────────────────────────────
+  updateTimeBadges();
 </script>

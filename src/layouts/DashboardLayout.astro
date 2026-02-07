@@ -10,6 +10,7 @@ const navItems = [
   { href: '/', label: 'Dashboard', icon: 'dashboard', id: 'dashboard' },
   { href: '/projects/', label: 'Projects', icon: 'projects', id: 'projects' },
   { href: '/tasks/', label: 'Tasks', icon: 'tasks', id: 'tasks' },
+  { href: '/time/', label: 'Time', icon: 'time', id: 'time' },
   { href: '/calendar/', label: 'Calendar', icon: 'calendar', id: 'calendar' },
   { href: '/clients/', label: 'Clients', icon: 'clients', id: 'clients' },
 ];
@@ -25,14 +26,27 @@ const navItems = [
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <title>{title} — FlowDesk</title>
+    <!-- Prevent flash-of-wrong-theme: apply saved preference before paint -->
+    <script is:inline>
+      (function() {
+        var theme = localStorage.getItem('fd-theme') || 'dark';
+        if (theme === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+        }
+      })();
+    </script>
   </head>
   <body class="min-h-screen bg-surface-950">
+    <!-- Mobile Overlay -->
+    <div id="sidebar-overlay" class="fixed inset-0 z-30 hidden bg-surface-950/60 backdrop-blur-sm lg:hidden" aria-hidden="true"></div>
+
     <!-- Desktop Sidebar -->
-    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-surface-800 bg-surface-900 lg:flex">
+    <aside id="sidebar" class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-surface-800/80 bg-surface-900/95 backdrop-blur-xl lg:flex">
       <!-- Logo -->
-      <div class="flex h-16 items-center gap-3 border-b border-surface-800 px-6">
-        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-600 text-sm font-bold text-white">F</div>
-        <span class="text-lg font-semibold text-white">FlowDesk</span>
+      <div class="flex h-16 items-center gap-3 border-b border-surface-800/80 px-6">
+        <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent-500 to-accent-700 text-sm font-bold text-white shadow-lg shadow-accent-600/20">F</div>
+        <span class="text-lg font-semibold text-white tracking-tight">FlowDesk</span>
+        <span class="ml-auto rounded-md bg-accent-600/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent-400">DEMO</span>
       </div>
 
       <!-- Navigation -->
@@ -41,26 +55,44 @@ const navItems = [
           <a
             href={item.href}
             class:list={[
-              'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+              'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200',
               active === item.id
-                ? 'bg-accent-600/10 text-accent-400'
-                : 'text-surface-400 hover:bg-surface-800 hover:text-surface-200',
+                ? 'bg-accent-600/12 text-accent-400 shadow-sm shadow-accent-600/5'
+                : 'text-surface-400 hover:bg-surface-800/80 hover:text-surface-200',
             ]}
           >
             <span class="nav-icon" data-icon={item.icon}></span>
             {item.label}
+            {active === item.id && (
+              <span class="ml-auto h-1.5 w-1.5 rounded-full bg-accent-400 pulse-dot"></span>
+            )}
           </a>
         ))}
       </nav>
 
       <!-- Sidebar Footer -->
-      <div class="border-t border-surface-800 p-4">
+      <div class="border-t border-surface-800/80 p-4">
         <div class="flex items-center gap-3">
-          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-600 text-xs font-semibold text-white">JD</div>
+          <div class="relative flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-accent-500 to-accent-700 text-xs font-semibold text-white shadow-sm">
+            JD
+            <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface-900 bg-green-500"></span>
+          </div>
           <div class="flex-1 min-w-0">
             <p class="truncate text-sm font-medium text-surface-200">Jonathan D.</p>
             <p class="truncate text-xs text-surface-500">Freelancer</p>
           </div>
+          <button class="rounded-md p-1.5 text-surface-500 transition-colors hover:bg-surface-800 hover:text-surface-300" aria-label="Settings">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+            </svg>
+          </button>
+          <button
+            id="shortcuts-help-btn"
+            class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-md border border-surface-700 text-xs font-medium text-surface-500 transition-colors hover:border-surface-600 hover:bg-surface-800 hover:text-surface-300"
+            aria-label="Keyboard shortcuts"
+            title="Keyboard shortcuts (?)"
+          >?</button>
         </div>
       </div>
     </aside>
@@ -68,9 +100,9 @@ const navItems = [
     <!-- Main Content -->
     <div class="lg:pl-64">
       <!-- Top Bar -->
-      <header class="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-surface-800 bg-surface-950/80 px-4 backdrop-blur-xl sm:px-6">
+      <header class="sticky top-0 z-30 flex h-16 items-center gap-4 border-b border-surface-800/80 bg-surface-950/80 px-4 backdrop-blur-xl sm:px-6">
         <!-- Mobile menu button -->
-        <button id="mobile-menu-btn" class="rounded-lg p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200 lg:hidden" aria-label="Open menu">
+        <button id="mobile-menu-btn" class="rounded-lg p-2 text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200 lg:hidden" aria-label="Open menu">
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
@@ -83,51 +115,161 @@ const navItems = [
               <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
             </svg>
             <input
+              id="global-search-input"
               type="text"
               placeholder="Search projects, tasks, clients..."
-              class="w-full rounded-lg border border-surface-700 bg-surface-800/50 py-2 pl-10 pr-4 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+              class="w-full rounded-lg border border-surface-700/60 bg-surface-800/40 py-2 pl-10 pr-16 text-sm text-surface-200 placeholder:text-surface-500 transition-all focus:border-accent-500/60 focus:bg-surface-800/60 focus:outline-none focus:ring-1 focus:ring-accent-500/40"
             />
+            <kbd class="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 items-center gap-0.5 rounded border border-surface-700 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-500 sm:inline-flex"><span class="text-[11px]">&#8984;</span>K</kbd>
           </div>
         </div>
 
         <!-- Right side -->
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-1.5">
+          <!-- Theme toggle -->
+          <button id="theme-toggle-btn" class="rounded-lg p-2 text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200" aria-label="Toggle theme" title="Toggle light/dark theme">
+            <!-- Sun icon (shown in dark mode — click to switch to light) -->
+            <svg id="theme-icon-sun" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386-1.591 1.591M21 12h-2.25m-.386 6.364-1.591-1.591M12 18.75V21m-4.773-4.227-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+            </svg>
+            <!-- Moon icon (shown in light mode — click to switch to dark) -->
+            <svg id="theme-icon-moon" class="hidden h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0 1 18 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 0 0 3 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 0 0 9.002-5.998Z" />
+            </svg>
+          </button>
+
           <!-- Notifications -->
-          <button class="relative rounded-lg p-2 text-surface-400 hover:bg-surface-800 hover:text-surface-200" aria-label="Notifications">
+          <button class="relative rounded-lg p-2 text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200" aria-label="Notifications">
             <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" d="M14.857 17.082a23.848 23.848 0 0 0 5.454-1.31A8.967 8.967 0 0 1 18 9.75V9A6 6 0 0 0 6 9v.75a8.967 8.967 0 0 1-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 0 1-5.714 0m5.714 0a3 3 0 1 1-5.714 0" />
             </svg>
-            <span class="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-accent-500"></span>
+            <span class="absolute right-1.5 top-1.5 flex h-2 w-2">
+              <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent-400 opacity-75"></span>
+              <span class="relative inline-flex h-2 w-2 rounded-full bg-accent-500"></span>
+            </span>
           </button>
 
           <!-- Avatar (mobile) -->
-          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-600 text-xs font-semibold text-white lg:hidden">JD</div>
+          <div class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-accent-500 to-accent-700 text-xs font-semibold text-white lg:hidden">JD</div>
         </div>
       </header>
 
       <!-- Page Content -->
-      <main class="p-4 sm:p-6">
+      <main class="p-4 pb-20 sm:p-6 lg:pb-6">
         <slot />
       </main>
     </div>
 
     <!-- Mobile Bottom Nav -->
-    <nav class="fixed inset-x-0 bottom-0 z-40 flex border-t border-surface-800 bg-surface-900 lg:hidden">
-      {navItems.map((item) => (
-        <a
-          href={item.href}
-          class:list={[
-            'flex flex-1 flex-col items-center gap-1 py-2 text-[10px] font-medium transition-colors',
-            active === item.id
-              ? 'text-accent-400'
-              : 'text-surface-500 hover:text-surface-300',
-          ]}
-        >
-          <span class="nav-icon-mobile" data-icon={item.icon}></span>
-          {item.label}
-        </a>
-      ))}
+    <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-surface-800/80 bg-surface-900/95 backdrop-blur-xl lg:hidden">
+      <div class="flex">
+        {navItems.map((item) => (
+          <a
+            href={item.href}
+            class:list={[
+              'flex flex-1 flex-col items-center gap-1 py-2.5 text-[10px] font-medium transition-colors',
+              active === item.id
+                ? 'text-accent-400'
+                : 'text-surface-500 hover:text-surface-300',
+            ]}
+          >
+            <span class:list={[
+              'nav-icon-mobile flex items-center justify-center rounded-lg px-3 py-1 transition-colors',
+              active === item.id ? 'bg-accent-600/10' : '',
+            ]} data-icon={item.icon}></span>
+            {item.label}
+          </a>
+        ))}
+      </div>
     </nav>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <div id="shortcuts-modal-backdrop" class="fixed inset-0 z-[60] hidden bg-black/60 backdrop-blur-sm transition-opacity"></div>
+    <div id="shortcuts-modal" class="fixed left-1/2 top-1/2 z-[61] hidden w-full max-w-md -translate-x-1/2 -translate-y-1/2 rounded-xl border border-surface-700/50 bg-surface-900 shadow-2xl shadow-black/40">
+      <div class="flex items-center justify-between border-b border-surface-700/50 px-5 py-4">
+        <h2 class="text-base font-semibold text-surface-100">Keyboard Shortcuts</h2>
+        <button id="shortcuts-modal-close" class="rounded-lg p-1.5 text-surface-400 transition-colors hover:bg-surface-800 hover:text-surface-200">
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+        </button>
+      </div>
+      <div class="px-5 py-4">
+        <div class="space-y-1">
+          <p class="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-surface-500">General</p>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">Focus search</span>
+            <div class="flex items-center gap-1">
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">&#8984;/Ctrl</kbd>
+              <span class="text-[10px] text-surface-600">+</span>
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">K</kbd>
+            </div>
+          </div>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">Close panel / modal</span>
+            <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">Esc</kbd>
+          </div>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">Show shortcuts</span>
+            <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">?</kbd>
+          </div>
+        </div>
+        <div class="mt-4 space-y-1">
+          <p class="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-surface-500">Navigation</p>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">Go to Dashboard</span>
+            <div class="flex items-center gap-1">
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">G</kbd>
+              <span class="text-[10px] text-surface-500">then</span>
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">D</kbd>
+            </div>
+          </div>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">Go to Tasks</span>
+            <div class="flex items-center gap-1">
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">G</kbd>
+              <span class="text-[10px] text-surface-500">then</span>
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">T</kbd>
+            </div>
+          </div>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">Go to Projects</span>
+            <div class="flex items-center gap-1">
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">G</kbd>
+              <span class="text-[10px] text-surface-500">then</span>
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">P</kbd>
+            </div>
+          </div>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">Go to Calendar</span>
+            <div class="flex items-center gap-1">
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">G</kbd>
+              <span class="text-[10px] text-surface-500">then</span>
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">C</kbd>
+            </div>
+          </div>
+        </div>
+        <div class="mt-4 space-y-1">
+          <p class="mb-2.5 text-[10px] font-semibold uppercase tracking-widest text-surface-500">Tasks</p>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">New task</span>
+            <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">N</kbd>
+          </div>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">Navigate task list</span>
+            <div class="flex items-center gap-1">
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">&uarr;</kbd>
+              <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">&darr;</kbd>
+            </div>
+          </div>
+          <div class="flex items-center justify-between rounded-lg px-2 py-2 hover:bg-surface-800/50">
+            <span class="text-sm text-surface-300">Open selected task</span>
+            <kbd class="rounded border border-surface-600 bg-surface-800 px-1.5 py-0.5 text-[10px] font-medium text-surface-400">Enter</kbd>
+          </div>
+        </div>
+      </div>
+      <div class="border-t border-surface-700/50 px-5 py-3">
+        <p class="text-[11px] text-surface-500">Press <kbd class="rounded border border-surface-600 bg-surface-800 px-1 py-0.5 text-[10px] text-surface-400">Esc</kbd> to close</p>
+      </div>
+    </div>
 
     <style>
       @import "../styles/global.css";
@@ -141,6 +283,7 @@ const navItems = [
         tasks: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>',
         calendar: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>',
         clients: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>',
+        time: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>',
       };
 
       document.querySelectorAll('.nav-icon').forEach((el) => {
@@ -148,13 +291,14 @@ const navItems = [
         if (icon && icons[icon]) el.innerHTML = icons[icon];
       });
 
-      // Mobile icons (smaller)
+      // Mobile icons
       const mobileIcons: Record<string, string> = {
         dashboard: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" /></svg>',
         projects: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12.75V12A2.25 2.25 0 0 1 4.5 9.75h15A2.25 2.25 0 0 1 21.75 12v.75m-8.69-6.44-2.12-2.12a1.5 1.5 0 0 0-1.061-.44H4.5A2.25 2.25 0 0 0 2.25 6v12a2.25 2.25 0 0 0 2.25 2.25h15A2.25 2.25 0 0 0 21.75 18V9a2.25 2.25 0 0 0-2.25-2.25h-5.379a1.5 1.5 0 0 1-1.06-.44Z" /></svg>',
         tasks: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>',
         calendar: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" /></svg>',
         clients: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 0 0 2.625.372 9.337 9.337 0 0 0 4.121-.952 4.125 4.125 0 0 0-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 0 1 8.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0 1 11.964-3.07M12 6.375a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0Zm8.25 2.25a2.625 2.625 0 1 1-5.25 0 2.625 2.625 0 0 1 5.25 0Z" /></svg>',
+        time: '<svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>',
       };
 
       document.querySelectorAll('.nav-icon-mobile').forEach((el) => {
@@ -162,13 +306,294 @@ const navItems = [
         if (icon && mobileIcons[icon]) el.innerHTML = mobileIcons[icon];
       });
 
-      // Mobile sidebar toggle
+      // ── Theme Toggle ──────────────────────────────────────────────────────
+      const themeToggleBtn = document.getElementById('theme-toggle-btn');
+      const themeIconSun = document.getElementById('theme-icon-sun');
+      const themeIconMoon = document.getElementById('theme-icon-moon');
+
+      function applyThemeIcons(theme: string) {
+        if (theme === 'light') {
+          // In light mode, show moon icon (click to go dark)
+          themeIconSun?.classList.add('hidden');
+          themeIconMoon?.classList.remove('hidden');
+        } else {
+          // In dark mode, show sun icon (click to go light)
+          themeIconSun?.classList.remove('hidden');
+          themeIconMoon?.classList.add('hidden');
+        }
+      }
+
+      // Initialize icon state based on current theme
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+      applyThemeIcons(currentTheme);
+
+      themeToggleBtn?.addEventListener('click', () => {
+        const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+        const newTheme = isDark ? 'light' : 'dark';
+
+        if (newTheme === 'light') {
+          document.documentElement.setAttribute('data-theme', 'light');
+        } else {
+          document.documentElement.removeAttribute('data-theme');
+        }
+
+        localStorage.setItem('fd-theme', newTheme);
+        applyThemeIcons(newTheme);
+      });
+
+      // Mobile sidebar toggle with overlay
       const menuBtn = document.getElementById('mobile-menu-btn');
       const sidebar = document.getElementById('sidebar');
+      const overlay = document.getElementById('sidebar-overlay');
+
+      function openMobileSidebar() {
+        sidebar?.classList.remove('hidden');
+        sidebar?.classList.add('flex');
+        overlay?.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+      }
+
+      function closeMobileSidebar() {
+        sidebar?.classList.add('hidden');
+        sidebar?.classList.remove('flex');
+        overlay?.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+
       menuBtn?.addEventListener('click', () => {
-        sidebar?.classList.toggle('hidden');
-        sidebar?.classList.toggle('flex');
+        const isOpen = !sidebar?.classList.contains('hidden');
+        if (isOpen) {
+          closeMobileSidebar();
+        } else {
+          openMobileSidebar();
+        }
       });
+
+      overlay?.addEventListener('click', closeMobileSidebar);
+
+      // ── Keyboard Shortcuts System ────────────────────────────────────────────
+      const shortcutsModal = document.getElementById('shortcuts-modal');
+      const shortcutsBackdrop = document.getElementById('shortcuts-modal-backdrop');
+      const shortcutsHelpBtn = document.getElementById('shortcuts-help-btn');
+      const shortcutsCloseBtn = document.getElementById('shortcuts-modal-close');
+
+      function openShortcutsModal() {
+        shortcutsBackdrop?.classList.remove('hidden');
+        shortcutsModal?.classList.remove('hidden');
+      }
+
+      function closeShortcutsModal() {
+        shortcutsBackdrop?.classList.add('hidden');
+        shortcutsModal?.classList.add('hidden');
+      }
+
+      function isShortcutsModalOpen(): boolean {
+        return !shortcutsModal?.classList.contains('hidden');
+      }
+
+      shortcutsHelpBtn?.addEventListener('click', () => {
+        if (isShortcutsModalOpen()) {
+          closeShortcutsModal();
+        } else {
+          openShortcutsModal();
+        }
+      });
+
+      shortcutsCloseBtn?.addEventListener('click', closeShortcutsModal);
+      shortcutsBackdrop?.addEventListener('click', closeShortcutsModal);
+
+      // Check if the active element is an input/textarea/select (user is typing)
+      function isTyping(): boolean {
+        const el = document.activeElement;
+        if (!el) return false;
+        const tag = el.tagName.toLowerCase();
+        return tag === 'input' || tag === 'textarea' || tag === 'select' || (el as HTMLElement).isContentEditable;
+      }
+
+      // Track "g" prefix for two-key navigation shortcuts
+      let gPrefixActive = false;
+      let gPrefixTimer: ReturnType<typeof setTimeout> | null = null;
+
+      function clearGPrefix() {
+        gPrefixActive = false;
+        if (gPrefixTimer) {
+          clearTimeout(gPrefixTimer);
+          gPrefixTimer = null;
+        }
+      }
+
+      // Track the currently highlighted task index for arrow-key navigation
+      let highlightedTaskIndex = -1;
+
+      function getVisibleTaskItems(): HTMLElement[] {
+        return Array.from(document.querySelectorAll('.task-item')).filter(
+          (el) => (el as HTMLElement).style.display !== 'none'
+        ) as HTMLElement[];
+      }
+
+      function clearTaskHighlight() {
+        document.querySelectorAll('.task-item.fd-kb-highlight').forEach((el) => {
+          el.classList.remove('fd-kb-highlight');
+        });
+      }
+
+      function highlightTask(index: number) {
+        const items = getVisibleTaskItems();
+        if (items.length === 0) return;
+        clearTaskHighlight();
+        // Clamp
+        if (index < 0) index = 0;
+        if (index >= items.length) index = items.length - 1;
+        highlightedTaskIndex = index;
+        const item = items[index];
+        item.classList.add('fd-kb-highlight');
+        item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+
+      document.addEventListener('keydown', (e: KeyboardEvent) => {
+        // Cmd/Ctrl+K — focus search
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+          e.preventDefault();
+          const searchInput = document.getElementById('global-search-input') as HTMLInputElement | null;
+          if (searchInput) {
+            searchInput.focus();
+            searchInput.select();
+          }
+          return;
+        }
+
+        // Escape — close modals/panels (highest priority)
+        if (e.key === 'Escape') {
+          // Close shortcuts modal first
+          if (isShortcutsModalOpen()) {
+            closeShortcutsModal();
+            e.preventDefault();
+            return;
+          }
+          // Close any open detail panels (handled by page-level scripts already, but also close mobile sidebar)
+          if (sidebar && !sidebar.classList.contains('hidden') && window.innerWidth < 1024) {
+            closeMobileSidebar();
+            e.preventDefault();
+            return;
+          }
+          // Blur search if focused
+          const searchInput = document.getElementById('global-search-input') as HTMLInputElement | null;
+          if (searchInput && document.activeElement === searchInput) {
+            searchInput.blur();
+            e.preventDefault();
+            return;
+          }
+          // Clear task highlight
+          if (highlightedTaskIndex >= 0) {
+            clearTaskHighlight();
+            highlightedTaskIndex = -1;
+            e.preventDefault();
+            return;
+          }
+          clearGPrefix();
+          return;
+        }
+
+        // All remaining shortcuts only fire when NOT typing in an input
+        if (isTyping()) {
+          clearGPrefix();
+          return;
+        }
+
+        // "?" — toggle shortcuts modal
+        if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+          e.preventDefault();
+          if (isShortcutsModalOpen()) {
+            closeShortcutsModal();
+          } else {
+            openShortcutsModal();
+          }
+          clearGPrefix();
+          return;
+        }
+
+        // Don't process shortcuts if any modal is open (except Escape/?)
+        if (isShortcutsModalOpen()) return;
+
+        // Two-key "g" navigation
+        if (gPrefixActive) {
+          clearGPrefix();
+          const navMap: Record<string, string> = {
+            d: '/',
+            t: '/tasks/',
+            p: '/projects/',
+            i: '/time/',
+            c: '/calendar/',
+            l: '/clients/',
+          };
+          const dest = navMap[e.key.toLowerCase()];
+          if (dest && window.location.pathname !== dest) {
+            e.preventDefault();
+            window.location.href = dest;
+          }
+          return;
+        }
+
+        if (e.key === 'g') {
+          gPrefixActive = true;
+          gPrefixTimer = setTimeout(clearGPrefix, 800);
+          return;
+        }
+
+        // "n" — new task (navigate to tasks page if needed, then open form)
+        if (e.key === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+          e.preventDefault();
+          if (window.location.pathname === '/tasks/' || window.location.pathname === '/tasks') {
+            const addBtn = document.getElementById('add-task-btn');
+            const addForm = document.getElementById('add-task-form');
+            if (addForm?.classList.contains('hidden')) {
+              addBtn?.click();
+            }
+            // Focus the title input
+            setTimeout(() => {
+              const titleInput = document.getElementById('task-title-input') as HTMLInputElement | null;
+              titleInput?.focus();
+            }, 50);
+          } else {
+            // Navigate to tasks page — the add form won't auto-open, but user arrives there
+            window.location.href = '/tasks/';
+          }
+          return;
+        }
+
+        // Arrow keys — navigate task list (only on tasks page)
+        if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+          const items = getVisibleTaskItems();
+          if (items.length === 0) return;
+          e.preventDefault();
+          if (e.key === 'ArrowDown') {
+            highlightTask(highlightedTaskIndex + 1);
+          } else {
+            highlightTask(highlightedTaskIndex <= 0 ? 0 : highlightedTaskIndex - 1);
+          }
+          return;
+        }
+
+        // Enter — open highlighted task detail
+        if (e.key === 'Enter' && highlightedTaskIndex >= 0) {
+          const items = getVisibleTaskItems();
+          if (highlightedTaskIndex < items.length) {
+            e.preventDefault();
+            const titleBtn = items[highlightedTaskIndex].querySelector('.task-title-btn') as HTMLElement | null;
+            titleBtn?.click();
+          }
+          return;
+        }
+      });
+
+      // Reset highlight when tasks re-render (listen for DOM changes in task list)
+      const taskListEl = document.getElementById('task-list');
+      if (taskListEl) {
+        const observer = new MutationObserver(() => {
+          highlightedTaskIndex = -1;
+        });
+        observer.observe(taskListEl, { childList: true });
+      }
     </script>
   </body>
 </html>

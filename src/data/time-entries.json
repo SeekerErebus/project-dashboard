@@ -1,0 +1,152 @@
+[
+  {
+    "id": "te-001",
+    "taskId": "task-001",
+    "projectId": "proj-001",
+    "description": "Built product image gallery component",
+    "startTime": "2026-02-06T09:00:00Z",
+    "endTime": "2026-02-06T11:30:00Z",
+    "durationMinutes": 150,
+    "manual": false
+  },
+  {
+    "id": "te-002",
+    "taskId": "task-001",
+    "projectId": "proj-001",
+    "description": "Add-to-cart functionality and size selector",
+    "startTime": "2026-02-06T13:00:00Z",
+    "endTime": "2026-02-06T15:15:00Z",
+    "durationMinutes": 135,
+    "manual": false
+  },
+  {
+    "id": "te-003",
+    "taskId": "task-004",
+    "projectId": "proj-002",
+    "description": "Typography scaling review and fixes",
+    "startTime": "2026-02-06T15:30:00Z",
+    "endTime": "2026-02-06T17:00:00Z",
+    "durationMinutes": 90,
+    "manual": false
+  },
+  {
+    "id": "te-004",
+    "taskId": "task-006",
+    "projectId": "proj-003",
+    "description": "Set up health check polling endpoints",
+    "startTime": "2026-02-05T10:00:00Z",
+    "endTime": "2026-02-05T12:45:00Z",
+    "durationMinutes": 165,
+    "manual": false
+  },
+  {
+    "id": "te-005",
+    "taskId": "task-006",
+    "projectId": "proj-003",
+    "description": "Baseline latency metrics configuration",
+    "startTime": "2026-02-05T14:00:00Z",
+    "endTime": "2026-02-05T15:30:00Z",
+    "durationMinutes": 90,
+    "manual": false
+  },
+  {
+    "id": "te-006",
+    "taskId": "task-011",
+    "projectId": "proj-001",
+    "description": "Prepare and send January invoice",
+    "startTime": "2026-02-01T09:00:00Z",
+    "endTime": "2026-02-01T09:45:00Z",
+    "durationMinutes": 45,
+    "manual": true
+  },
+  {
+    "id": "te-007",
+    "taskId": "task-012",
+    "projectId": "proj-003",
+    "description": "Docker environment setup and API credentials",
+    "startTime": "2026-01-30T10:00:00Z",
+    "endTime": "2026-01-30T13:00:00Z",
+    "durationMinutes": 180,
+    "manual": false
+  },
+  {
+    "id": "te-008",
+    "taskId": "task-004",
+    "projectId": "proj-002",
+    "description": "Code block rendering fixes",
+    "startTime": "2026-02-05T09:00:00Z",
+    "endTime": "2026-02-05T10:00:00Z",
+    "durationMinutes": 60,
+    "manual": false
+  },
+  {
+    "id": "te-009",
+    "taskId": "task-001",
+    "projectId": "proj-001",
+    "description": "Product page responsive layout",
+    "startTime": "2026-02-04T09:30:00Z",
+    "endTime": "2026-02-04T12:00:00Z",
+    "durationMinutes": 150,
+    "manual": false
+  },
+  {
+    "id": "te-010",
+    "taskId": "task-002",
+    "projectId": "proj-001",
+    "description": "Research Stripe Elements API docs",
+    "startTime": "2026-02-04T13:00:00Z",
+    "endTime": "2026-02-04T14:30:00Z",
+    "durationMinutes": 90,
+    "manual": true
+  },
+  {
+    "id": "te-011",
+    "taskId": "task-010",
+    "projectId": null,
+    "description": "Draft portfolio case study outline",
+    "startTime": "2026-02-03T16:00:00Z",
+    "endTime": "2026-02-03T17:00:00Z",
+    "durationMinutes": 60,
+    "manual": true
+  },
+  {
+    "id": "te-012",
+    "taskId": "task-006",
+    "projectId": "proj-003",
+    "description": "API endpoint testing and validation",
+    "startTime": "2026-02-06T09:00:00Z",
+    "endTime": "2026-02-06T10:30:00Z",
+    "durationMinutes": 90,
+    "manual": false
+  },
+  {
+    "id": "te-013",
+    "taskId": "task-009",
+    "projectId": "proj-004",
+    "description": "Draft contract terms and scope",
+    "startTime": "2026-02-06T11:00:00Z",
+    "endTime": "2026-02-06T12:00:00Z",
+    "durationMinutes": 60,
+    "manual": true
+  },
+  {
+    "id": "te-014",
+    "taskId": "task-001",
+    "projectId": "proj-001",
+    "description": "Product page accessibility audit",
+    "startTime": "2026-02-03T09:00:00Z",
+    "endTime": "2026-02-03T10:30:00Z",
+    "durationMinutes": 90,
+    "manual": false
+  },
+  {
+    "id": "te-015",
+    "taskId": "task-007",
+    "projectId": "proj-003",
+    "description": "Chart component wireframes and tech spike",
+    "startTime": "2026-02-03T13:00:00Z",
+    "endTime": "2026-02-03T15:00:00Z",
+    "durationMinutes": 120,
+    "manual": false
+  }
+]

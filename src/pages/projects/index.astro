@@ -4,10 +4,10 @@ import projects from '../../data/projects.json';
 import clients from '../../data/clients.json';
 
 const columns = [
-  { key: 'lead', label: 'Lead' },
-  { key: 'in-progress', label: 'In Progress' },
-  { key: 'review', label: 'Review' },
-  { key: 'completed', label: 'Completed' },
+  { key: 'lead', label: 'Lead', icon: 'sparkle' },
+  { key: 'in-progress', label: 'In Progress', icon: 'bolt' },
+  { key: 'review', label: 'Review', icon: 'eye' },
+  { key: 'completed', label: 'Completed', icon: 'check' },
 ];
 
 const projectsByStatus = Object.fromEntries(
@@ -38,7 +38,7 @@ function priorityClasses(priority: string) {
 
 function columnHeaderColor(key: string) {
   switch (key) {
-    case 'lead': return 'bg-surface-500';
+    case 'lead': return 'bg-surface-400';
     case 'in-progress': return 'bg-blue-500';
     case 'review': return 'bg-amber-500';
     case 'completed': return 'bg-green-500';
@@ -49,12 +49,12 @@ function columnHeaderColor(key: string) {
 
 <DashboardLayout title="Projects" active="projects">
   <!-- Page Header -->
-  <div class="mb-6 flex items-center justify-between">
+  <div class="mb-8 flex items-center justify-between">
     <div>
-      <h1 class="text-2xl font-bold text-surface-100">Projects</h1>
+      <h1 class="text-2xl font-bold tracking-tight text-surface-100">Projects</h1>
       <p class="mt-1 text-sm text-surface-400">{projects.length} total projects across all stages</p>
     </div>
-    <button class="inline-flex items-center gap-2 rounded-lg bg-accent-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-700">
+    <button class="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-accent-600 to-accent-700 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-accent-600/20 transition-all hover:shadow-accent-600/30 hover:brightness-110">
       <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
       </svg>
@@ -63,16 +63,16 @@ function columnHeaderColor(key: string) {
   </div>
 
   <!-- Kanban Board -->
-  <div class="flex gap-4 overflow-x-auto pb-4">
+  <div class="flex gap-5 overflow-x-auto pb-4 -mx-2 px-2">
     {columns.map((col) => {
       const colProjects = projectsByStatus[col.key] || [];
       return (
         <div class="flex w-72 min-w-[280px] flex-shrink-0 flex-col">
           {/* Column Header */}
-          <div class="mb-3 flex items-center gap-2.5">
+          <div class="mb-3 flex items-center gap-2.5 px-1">
             <span class:list={['h-2.5 w-2.5 rounded-full', columnHeaderColor(col.key)]} />
             <h2 class="text-sm font-semibold text-surface-200">{col.label}</h2>
-            <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-surface-800 px-1.5 text-xs font-medium text-surface-400">
+            <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-md bg-surface-800/80 px-1.5 text-[11px] font-medium text-surface-400">
               {colProjects.length}
             </span>
           </div>
@@ -82,14 +82,17 @@ function columnHeaderColor(key: string) {
             {colProjects.map((project) => {
               const client = getClient(project.client);
               return (
-                <a href={`/projects/${project.id}/`} class="group block overflow-hidden rounded-xl border border-surface-700/50 bg-surface-800 transition-all hover:border-surface-600 hover:shadow-lg hover:shadow-surface-950/50">
+                <a href={`/projects/${project.id}/`} class="group block overflow-hidden rounded-xl border border-surface-700/50 bg-surface-800/80 transition-all duration-200 hover:border-surface-600 hover:shadow-lg hover:shadow-surface-950/40 hover:-translate-y-0.5">
                   {/* Color Bar */}
-                  <div class="h-1.5" style={`background-color: ${project.color}`} />
+                  <div class="h-1" style={`background: linear-gradient(90deg, ${project.color}, ${project.color}88)`} />
 
                   <div class="p-4">
                     {/* Client Name */}
                     {client && (
-                      <p class="mb-1 text-xs font-medium text-surface-400">{client.name}</p>
+                      <p class="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-surface-400">
+                        <span class="flex h-4 w-4 items-center justify-center rounded-full bg-surface-700 text-[8px] font-bold text-surface-300">{client.avatar.charAt(0)}</span>
+                        {client.name}
+                      </p>
                     )}
 
                     {/* Project Title */}
@@ -97,20 +100,20 @@ function columnHeaderColor(key: string) {
 
                     {/* Progress Bar */}
                     <div class="mt-3">
-                      <div class="mb-1 flex items-center justify-between">
+                      <div class="mb-1.5 flex items-center justify-between">
                         <span class="text-xs text-surface-400">Progress</span>
-                        <span class="text-xs font-medium text-surface-300">{project.progress}%</span>
+                        <span class="text-xs font-semibold text-surface-300">{project.progress}%</span>
                       </div>
-                      <div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-700">
+                      <div class="h-1.5 w-full overflow-hidden rounded-full bg-surface-700/60">
                         <div
-                          class="h-full rounded-full transition-all"
+                          class="h-full rounded-full transition-all progress-shimmer"
                           style={`width: ${project.progress}%; background-color: ${project.color}`}
                         />
                       </div>
                     </div>
 
                     {/* Meta Row */}
-                    <div class="mt-3 flex items-center justify-between">
+                    <div class="mt-3.5 flex items-center justify-between">
                       {/* Due Date */}
                       <div class="flex items-center gap-1.5 text-xs text-surface-400">
                         <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -126,10 +129,10 @@ function columnHeaderColor(key: string) {
                     </div>
 
                     {/* Budget */}
-                    <div class="mt-2.5 flex items-center justify-between border-t border-surface-700/50 pt-2.5">
-                      <span class="text-xs text-surface-400">Budget</span>
+                    <div class="mt-3 flex items-center justify-between border-t border-surface-700/40 pt-3">
+                      <span class="text-xs text-surface-500">Budget</span>
                       <span class="text-xs font-medium text-surface-300">
-                        {formatCurrency(project.spent)} / {formatCurrency(project.budget)}
+                        {formatCurrency(project.spent)}<span class="text-surface-500"> / {formatCurrency(project.budget)}</span>
                       </span>
                     </div>
                   </div>
@@ -138,8 +141,13 @@ function columnHeaderColor(key: string) {
             })}
 
             {colProjects.length === 0 && (
-              <div class="flex h-24 items-center justify-center rounded-xl border border-dashed border-surface-700/50 text-xs text-surface-500">
-                No projects
+              <div class="flex h-28 items-center justify-center rounded-xl border border-dashed border-surface-700/40 bg-surface-900/30">
+                <div class="text-center">
+                  <svg class="mx-auto h-6 w-6 text-surface-600" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                  </svg>
+                  <p class="mt-1 text-xs text-surface-500">No projects</p>
+                </div>
               </div>
             )}
           </div>

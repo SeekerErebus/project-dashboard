@@ -26,12 +26,42 @@
   --color-red-500: #ef4444;
   --color-blue-400: #60a5fa;
   --color-blue-500: #3b82f6;
+  --color-pink-400: #f472b6;
+  --color-pink-500: #ec4899;
+}
+
+/* ── Light mode overrides ──────────────────────────────────────────────── */
+/* Invert the surface palette so dark backgrounds become light, dark text stays readable */
+[data-theme="light"] {
+  --color-surface-50: #1e293b;
+  --color-surface-100: #334155;
+  --color-surface-200: #475569;
+  --color-surface-300: #64748b;
+  --color-surface-400: #94a3b8;
+  --color-surface-500: #94a3b8;
+  --color-surface-600: #cbd5e1;
+  --color-surface-700: #e2e8f0;
+  --color-surface-800: #f1f5f9;
+  --color-surface-850: #f5f7fa;
+  --color-surface-900: #f8fafc;
+  --color-surface-950: #ffffff;
+}
+
+/* Adjust shadows for light mode */
+[data-theme="light"] .card-interactive:hover {
+  box-shadow:
+    0 4px 24px -4px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(99, 102, 241, 0.1);
+}
+
+[data-theme="light"] .card:hover {
+  box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
 }
 
 @layer base {
   * {
     scrollbar-width: thin;
-    scrollbar-color: var(--color-surface-600) transparent;
+    scrollbar-color: var(--color-surface-700) transparent;
   }
 
   body {
@@ -40,5 +70,130 @@
     color: var(--color-surface-200);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Better text selection */
+  ::selection {
+    background-color: color-mix(in srgb, var(--color-accent-500) 35%, transparent);
+    color: var(--color-surface-100);
+  }
+
+  /* Focus-visible ring for keyboard nav */
+  :focus-visible {
+    outline: 2px solid var(--color-accent-500);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+}
+
+@layer utilities {
+  /* Card glass effect */
+  .card {
+    border-radius: 0.75rem;
+    border: 1px solid rgba(51, 65, 85, 0.5);
+    background: linear-gradient(
+      145deg,
+      rgba(30, 41, 59, 0.6) 0%,
+      rgba(15, 23, 42, 0.8) 100%
+    );
+    backdrop-filter: blur(12px);
+  }
+
+  .card-solid {
+    border-radius: 0.75rem;
+    border: 1px solid rgba(51, 65, 85, 0.5);
+    background: var(--color-surface-900);
+  }
+
+  .card-interactive {
+    border-radius: 0.75rem;
+    border: 1px solid rgba(51, 65, 85, 0.5);
+    background: linear-gradient(
+      145deg,
+      rgba(30, 41, 59, 0.6) 0%,
+      rgba(15, 23, 42, 0.8) 100%
+    );
+    backdrop-filter: blur(12px);
+    transition: all 0.2s ease;
+  }
+
+  .card-interactive:hover {
+    border-color: rgba(51, 65, 85, 0.8);
+    box-shadow:
+      0 4px 24px -4px rgba(0, 0, 0, 0.3),
+      0 0 0 1px rgba(99, 102, 241, 0.05);
+    transform: translateY(-1px);
+  }
+
+  /* Subtle glow for accent elements */
+  .glow-accent {
+    box-shadow: 0 0 20px -4px rgba(99, 102, 241, 0.3);
+  }
+
+  /* Smooth fade-in for page content */
+  .fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Pulse dot animation */
+  .pulse-dot {
+    animation: pulseDot 2s ease-in-out infinite;
+  }
+
+  @keyframes pulseDot {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(1.15);
+    }
+  }
+
+  /* Keyboard navigation highlight for task rows */
+  .fd-kb-highlight {
+    background-color: color-mix(in srgb, var(--color-accent-500) 8%, transparent) !important;
+    border-color: color-mix(in srgb, var(--color-accent-500) 30%, transparent) !important;
+    box-shadow: inset 2px 0 0 var(--color-accent-500);
+  }
+
+  /* Progress bar shimmer */
+  .progress-shimmer {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .progress-shimmer::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.08) 50%,
+      transparent 100%
+    );
+    animation: shimmer 2.5s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
   }
 }
