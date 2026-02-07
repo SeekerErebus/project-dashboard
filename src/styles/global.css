@@ -48,13 +48,15 @@
 }
 
 /* Adjust shadows for light mode */
-[data-theme="light"] .card-interactive:hover {
+[data-theme="light"] .card-interactive:hover,
+[data-theme="light"] .fd-card-interactive:hover {
   box-shadow:
     0 4px 24px -4px rgba(0, 0, 0, 0.08),
-    0 0 0 1px rgba(99, 102, 241, 0.1);
+    0 0 0 1px color-mix(in srgb, var(--color-accent-500) 10%, transparent);
 }
 
-[data-theme="light"] .card:hover {
+[data-theme="light"] .card:hover,
+[data-theme="light"] .fd-card:hover {
   box-shadow: 0 4px 24px -4px rgba(0, 0, 0, 0.08);
 }
 
@@ -86,8 +88,183 @@
   }
 }
 
+@layer components {
+  /* Card component — shared elevation + border style */
+  .fd-card {
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-surface-700) 50%, transparent);
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-surface-800) 60%, transparent),
+      color-mix(in srgb, var(--color-surface-800) 40%, transparent)
+    );
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+  }
+
+  .fd-card:hover {
+    border-color: var(--color-surface-600);
+    box-shadow: 0 4px 24px -4px color-mix(in srgb, var(--color-surface-950) 60%, transparent);
+  }
+
+  /* Stat card — subtle left accent stripe on hover */
+  .fd-stat-card {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fd-stat-card::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: var(--stat-accent, var(--color-accent-500));
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .fd-stat-card:hover::before {
+    opacity: 1;
+  }
+
+  /* Smooth sidebar transition for mobile */
+  .fd-sidebar-enter {
+    animation: fd-slide-in 0.2s ease-out forwards;
+  }
+
+  @keyframes fd-slide-in {
+    from {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  /* Kanban column subtle top border accent */
+  .fd-kanban-col {
+    border-top: 2px solid var(--col-color, var(--color-surface-700));
+    border-radius: 0.75rem;
+    background-color: color-mix(in srgb, var(--color-surface-900) 80%, transparent);
+    padding: 0.75rem;
+  }
+
+  /* Task row — clean hover state */
+  .fd-task-row {
+    border-radius: 0.625rem;
+    border: 1px solid transparent;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .fd-task-row:hover {
+    background-color: color-mix(in srgb, var(--color-surface-800) 50%, transparent);
+    border-color: color-mix(in srgb, var(--color-surface-700) 50%, transparent);
+  }
+
+  /* Priority indicator dot — pulsing for high */
+  .fd-priority-high {
+    animation: fd-pulse-dot 2s ease-in-out infinite;
+  }
+
+  @keyframes fd-pulse-dot {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Filter chip style */
+  .fd-filter-chip {
+    background-color: transparent;
+    color: var(--color-surface-400);
+    border-radius: 0.375rem;
+    padding: 0.25rem 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .fd-filter-chip:hover {
+    background-color: color-mix(in srgb, var(--color-surface-700) 50%, transparent);
+    color: var(--color-surface-200);
+  }
+
+  .fd-filter-chip.active {
+    background-color: var(--color-accent-600);
+    color: white;
+    box-shadow: 0 1px 3px color-mix(in srgb, var(--color-accent-600) 40%, transparent);
+  }
+
+  /* Badge component */
+  .fd-badge {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 9999px;
+    padding: 0.125rem 0.5rem;
+    font-size: 0.625rem;
+    font-weight: 600;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+  }
+
+  /* Calendar day cell */
+  .fd-cal-day {
+    transition: background-color 0.1s ease;
+  }
+
+  .fd-cal-day:hover {
+    background-color: color-mix(in srgb, var(--color-surface-800) 60%, transparent);
+  }
+
+  /* Smooth page load */
+  main {
+    animation: fd-fade-in 0.25s ease-out;
+  }
+
+  @keyframes fd-fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Interactive card — hover lift + glow (used on client cards, etc.) */
+  .fd-card-interactive {
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--color-surface-700) 50%, transparent);
+    background: linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--color-surface-800) 60%, transparent),
+      color-mix(in srgb, var(--color-surface-800) 40%, transparent)
+    );
+    backdrop-filter: blur(12px);
+    transition: all 0.2s ease;
+  }
+
+  .fd-card-interactive:hover {
+    border-color: color-mix(in srgb, var(--color-surface-600) 80%, transparent);
+    box-shadow:
+      0 4px 24px -4px rgba(0, 0, 0, 0.3),
+      0 0 0 1px color-mix(in srgb, var(--color-accent-500) 5%, transparent);
+    transform: translateY(-1px);
+  }
+
+  /* Bottom nav safe area padding on mobile */
+  .fd-main-content {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  /* Keyboard navigation highlight for task rows */
+  .fd-kb-highlight {
+    background-color: color-mix(in srgb, var(--color-accent-500) 8%, transparent) !important;
+    border-color: color-mix(in srgb, var(--color-accent-500) 30%, transparent) !important;
+    box-shadow: inset 2px 0 0 var(--color-accent-500);
+  }
+}
+
 @layer utilities {
-  /* Card glass effect */
+  /* Legacy card classes — kept for backward compatibility with existing pages */
   .card {
     border-radius: 0.75rem;
     border: 1px solid rgba(51, 65, 85, 0.5);
@@ -125,9 +302,18 @@
     transform: translateY(-1px);
   }
 
-  /* Subtle glow for accent elements */
-  .glow-accent {
-    box-shadow: 0 0 20px -4px rgba(99, 102, 241, 0.3);
+  /* Glow utility for accent buttons */
+  .glow-accent,
+  .fd-glow-accent {
+    box-shadow: 0 0 12px -2px color-mix(in srgb, var(--color-accent-500) 40%, transparent);
+  }
+
+  /* Text gradient utility */
+  .fd-text-gradient {
+    background: linear-gradient(135deg, var(--color-accent-400), var(--color-accent-600));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
   }
 
   /* Smooth fade-in for page content */
@@ -160,13 +346,6 @@
       opacity: 0.6;
       transform: scale(1.15);
     }
-  }
-
-  /* Keyboard navigation highlight for task rows */
-  .fd-kb-highlight {
-    background-color: color-mix(in srgb, var(--color-accent-500) 8%, transparent) !important;
-    border-color: color-mix(in srgb, var(--color-accent-500) 30%, transparent) !important;
-    box-shadow: inset 2px 0 0 var(--color-accent-500);
   }
 
   /* Progress bar shimmer */

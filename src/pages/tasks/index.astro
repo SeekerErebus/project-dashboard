@@ -67,6 +67,15 @@ const statusColors = {
   'in-progress': 'text-blue-400',
   'done': 'text-green-400',
 };
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
 ---
 
 <DashboardLayout title="Tasks" active="tasks">
@@ -147,16 +156,16 @@ const statusColors = {
   </div>
 
   <!-- Filter Bar -->
-  <div class="mb-4 flex flex-wrap gap-3 card p-4">
+  <div class="mb-4 flex flex-wrap gap-3 rounded-xl border border-surface-700/30 bg-surface-900/80 p-3 sm:p-4">
     <!-- Project Filter -->
     <div class="flex flex-wrap items-center gap-2">
-      <span class="text-xs font-medium uppercase tracking-wider text-surface-500">Project</span>
+      <span class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Project</span>
       <div class="flex flex-wrap gap-1">
-        <button class="filter-btn filter-project active rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-project="all">All</button>
+        <button class="fd-filter-chip filter-project active" data-project="all">All</button>
         {uniqueProjects.map((pid) => {
           const proj = projectMap[pid!];
           return proj ? (
-            <button class="filter-btn filter-project rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-project={pid}>
+            <button class="fd-filter-chip filter-project" data-project={pid}>
               <span class="mr-1 inline-block h-2 w-2 rounded-full" style={`background-color: ${proj.color}`}></span>
               {proj.title}
             </button>
@@ -165,29 +174,29 @@ const statusColors = {
       </div>
     </div>
 
-    <div class="hidden h-6 w-px bg-surface-700 sm:block"></div>
+    <div class="hidden h-6 w-px bg-surface-700/50 sm:block"></div>
 
     <!-- Priority Filter -->
     <div class="flex flex-wrap items-center gap-2">
-      <span class="text-xs font-medium uppercase tracking-wider text-surface-500">Priority</span>
+      <span class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Priority</span>
       <div class="flex gap-1">
-        <button class="filter-btn filter-priority active rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-priority="all">All</button>
-        <button class="filter-btn filter-priority rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-priority="high">High</button>
-        <button class="filter-btn filter-priority rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-priority="medium">Medium</button>
-        <button class="filter-btn filter-priority rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-priority="low">Low</button>
+        <button class="fd-filter-chip filter-priority active" data-priority="all">All</button>
+        <button class="fd-filter-chip filter-priority" data-priority="high">High</button>
+        <button class="fd-filter-chip filter-priority" data-priority="medium">Medium</button>
+        <button class="fd-filter-chip filter-priority" data-priority="low">Low</button>
       </div>
     </div>
 
-    <div class="hidden h-6 w-px bg-surface-700 sm:block"></div>
+    <div class="hidden h-6 w-px bg-surface-700/50 sm:block"></div>
 
     <!-- Status Filter -->
     <div class="flex flex-wrap items-center gap-2">
-      <span class="text-xs font-medium uppercase tracking-wider text-surface-500">Status</span>
+      <span class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Status</span>
       <div class="flex gap-1">
-        <button class="filter-btn filter-status active rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-status="all">All</button>
-        <button class="filter-btn filter-status rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-status="todo">To Do</button>
-        <button class="filter-btn filter-status rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-status="in-progress">In Progress</button>
-        <button class="filter-btn filter-status rounded-md px-2.5 py-1 text-xs font-medium transition-colors" data-status="done">Done</button>
+        <button class="fd-filter-chip filter-status active" data-status="all">All</button>
+        <button class="fd-filter-chip filter-status" data-status="todo">To Do</button>
+        <button class="fd-filter-chip filter-status" data-status="in-progress">In Progress</button>
+        <button class="fd-filter-chip filter-status" data-status="done">Done</button>
       </div>
     </div>
   </div>
@@ -197,76 +206,83 @@ const statusColors = {
     {sortedTasks.map((task) => {
       const proj = task.project ? projectMap[task.project] : null;
       const taskMinutes = timeByTask.get(task.id) || 0;
+      const priorityDotClass = task.priority === 'high'
+        ? `${priorityColors[task.priority] || 'bg-surface-500'} fd-priority-high`
+        : (priorityColors[task.priority] || 'bg-surface-500');
       return (
         <div
           class:list={[
-            'task-item group flex items-center gap-3 rounded-xl border border-surface-700/50 bg-surface-900/80 p-4 transition-all duration-200 hover:border-surface-600 hover:bg-surface-900 cursor-pointer',
+            'task-item fd-task-row group cursor-pointer',
             task.status === 'done' && 'opacity-50',
           ]}
           data-task-id={task.id}
           data-project={task.project || 'none'}
           data-priority={task.priority}
           data-status={task.status}
-          data-description={task.description || ''}
+          data-description={escapeHtml(task.description || '')}
           data-due-date={task.dueDate || ''}
-          data-title={task.title}
+          data-title={escapeHtml(task.title)}
           data-seed-minutes={taskMinutes}
         >
-          <!-- Checkbox -->
-          <button
-            class:list={[
-              'task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-              task.status === 'done'
-                ? 'border-green-500 bg-green-500'
-                : 'border-surface-600 hover:border-accent-400',
-            ]}
-            aria-label="Toggle task"
-          >
-            {task.status === 'done' && (
-              <svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-              </svg>
-            )}
-          </button>
+          <div class="flex items-center gap-3 px-4 py-3.5">
+            <!-- Checkbox -->
+            <button
+              class:list={[
+                'task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 transition-all',
+                task.status === 'done'
+                  ? 'border-green-500 bg-green-500'
+                  : 'border-surface-600 hover:border-accent-400',
+              ]}
+              aria-label="Toggle task"
+            >
+              {task.status === 'done' && (
+                <svg class="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+                </svg>
+              )}
+            </button>
 
-          <!-- Priority Badge -->
-          <span class={`h-2 w-2 flex-shrink-0 rounded-full ${priorityColors[task.priority] || 'bg-surface-500'}`} title={task.priority}></span>
+            <!-- Priority Badge -->
+            <span class={`h-2 w-2 flex-shrink-0 rounded-full ${priorityDotClass}`} title={task.priority}></span>
 
-          <!-- Title (clickable for detail) -->
-          <button
-            class:list={[
-              'task-title-btn flex-1 text-left text-sm font-medium transition-colors truncate',
-              task.status === 'done' ? 'text-surface-500 line-through' : 'text-surface-200 hover:text-accent-400',
-            ]}
-          >
-            {task.title}
-          </button>
-
-          <!-- Time Logged Badge -->
-          <span class="task-time-badge hidden items-center gap-1 rounded-md bg-surface-800/80 px-2 py-1 text-xs font-medium text-surface-400 sm:flex" data-task-id={task.id}>
-            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
-            </svg>
-            <span class="time-display">{taskMinutes > 0 ? formatDuration(taskMinutes) : '0m'}</span>
-          </span>
-
-          <!-- Project -->
-          {proj && (
-            <span class="hidden items-center gap-1.5 text-xs text-surface-400 lg:flex">
-              <span class="h-2 w-2 rounded-full" style={`background-color: ${proj.color}`}></span>
-              {proj.title}
+            <!-- Title (clickable for detail) -->
+            <span
+              class:list={[
+                'task-title-btn flex-1 cursor-pointer text-left text-sm font-medium transition-colors truncate hover:text-accent-400',
+                task.status === 'done' ? 'text-surface-500 line-through' : 'text-surface-200',
+              ]}
+              role="button"
+              tabindex="0"
+            >
+              {task.title}
             </span>
-          )}
 
-          <!-- Due Date -->
-          <span class={`hidden text-xs sm:block ${getDueDateClass(task.dueDate)}`}>
-            {formatDate(task.dueDate)}
-          </span>
+            <!-- Time Logged Badge -->
+            <span class="task-time-badge hidden items-center gap-1 rounded-md bg-surface-800/80 px-2 py-1 text-xs font-medium text-surface-400 sm:flex" data-task-id={task.id}>
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+              </svg>
+              <span class="time-display">{taskMinutes > 0 ? formatDuration(taskMinutes) : '0m'}</span>
+            </span>
 
-          <!-- Status -->
-          <span class={`hidden text-xs font-medium md:block ${statusColors[task.status] || 'text-surface-400'}`}>
-            {statusLabels[task.status] || task.status}
-          </span>
+            <!-- Project -->
+            {proj && (
+              <span class="hidden items-center gap-1.5 text-xs text-surface-400 sm:flex">
+                <span class="h-2 w-2 rounded-full" style={`background-color: ${proj.color}`}></span>
+                {proj.title}
+              </span>
+            )}
+
+            <!-- Due Date -->
+            <span class={`hidden text-xs sm:block ${getDueDateClass(task.dueDate)}`}>
+              {formatDate(task.dueDate)}
+            </span>
+
+            <!-- Status -->
+            <span class={`hidden rounded-full px-2 py-0.5 text-[10px] font-semibold md:inline-block ${statusColors[task.status] || 'text-surface-400'}`}>
+              {statusLabels[task.status] || task.status}
+            </span>
+          </div>
         </div>
       );
     })}
@@ -367,18 +383,7 @@ const statusColors = {
 </DashboardLayout>
 
 <style>
-  .filter-btn {
-    background-color: transparent;
-    color: var(--color-surface-400);
-  }
-  .filter-btn:hover {
-    background-color: var(--color-surface-800);
-    color: var(--color-surface-200);
-  }
-  .filter-btn.active {
-    background-color: var(--color-accent-600);
-    color: white;
-  }
+  /* Filter chip styles now handled by fd-filter-chip in global.css */
   #task-detail-panel.open {
     transform: translateX(0);
   }
@@ -595,6 +600,12 @@ const statusColors = {
     'proj-004': 'Restaurant Website',
   };
 
+  function escapeHtml(str: string): string {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   document.getElementById('new-task-form')?.addEventListener('submit', (e) => {
     e.preventDefault();
     const title = (document.getElementById('task-title-input') as HTMLInputElement).value;
@@ -610,11 +621,15 @@ const statusColors = {
       low: 'bg-blue-500',
     };
 
+    const priorityDotClass = priority === 'high'
+      ? `${priorityColorMap[priority] || 'bg-surface-500'} fd-priority-high`
+      : (priorityColorMap[priority] || 'bg-surface-500');
+
     let projectHtml = '';
     if (project && projectColors[project]) {
-      projectHtml = `<span class="hidden items-center gap-1.5 text-xs text-surface-400 lg:flex">
+      projectHtml = `<span class="hidden items-center gap-1.5 text-xs text-surface-400 sm:flex">
         <span class="h-2 w-2 rounded-full" style="background-color: ${projectColors[project]}"></span>
-        ${projectTitles[project]}
+        ${escapeHtml(projectTitles[project])}
       </span>`;
     }
 
@@ -622,35 +637,37 @@ const statusColors = {
     if (dueDate) {
       const d = new Date(dueDate);
       const formatted = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      dueDateHtml = `<span class="hidden text-xs text-surface-400 sm:block">${formatted}</span>`;
+      dueDateHtml = `<span class="hidden text-xs text-surface-400 sm:block">${escapeHtml(formatted)}</span>`;
     }
 
     const taskId = 'task-new-' + Date.now();
     const newTask = document.createElement('div');
-    newTask.className = 'task-item group flex items-center gap-3 rounded-xl border border-surface-700/50 bg-surface-900 p-4 transition-all duration-200 hover:border-surface-600 cursor-pointer';
+    newTask.className = 'task-item fd-task-row group cursor-pointer';
     newTask.dataset.taskId = taskId;
     newTask.dataset.project = project || 'none';
     newTask.dataset.priority = priority;
     newTask.dataset.status = 'todo';
     newTask.dataset.description = '';
     newTask.dataset.dueDate = dueDate || '';
-    newTask.dataset.title = title;
+    newTask.dataset.title = escapeHtml(title);
     newTask.dataset.seedMinutes = '0';
 
     // Also register in project map for timer
     if (project) taskProjectMap[taskId] = project;
 
     newTask.innerHTML = `
-      <button class="task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-600 hover:border-accent-400 transition-colors" aria-label="Toggle task"></button>
-      <span class="h-2 w-2 flex-shrink-0 rounded-full ${priorityColorMap[priority] || 'bg-surface-500'}" title="${priority}"></span>
-      <button class="task-title-btn flex-1 text-left text-sm font-medium text-surface-200 hover:text-accent-400 transition-colors truncate">${title}</button>
-      <span class="task-time-badge hidden items-center gap-1 rounded-md bg-surface-800/80 px-2 py-1 text-xs font-medium text-surface-400 sm:flex" data-task-id="${taskId}">
-        <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
-        <span class="time-display">0m</span>
-      </span>
-      ${projectHtml}
-      ${dueDateHtml}
-      <span class="hidden text-xs font-medium text-surface-500 md:block">To Do</span>
+      <div class="flex items-center gap-3 px-4 py-3.5">
+        <button class="task-checkbox flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border-2 border-surface-600 hover:border-accent-400 transition-all" aria-label="Toggle task"></button>
+        <span class="h-2 w-2 flex-shrink-0 rounded-full ${priorityDotClass}" title="${escapeHtml(priority)}"></span>
+        <span class="task-title-btn flex-1 cursor-pointer text-left text-sm font-medium text-surface-200 hover:text-accent-400 transition-colors truncate" role="button" tabindex="0">${escapeHtml(title)}</span>
+        <span class="task-time-badge hidden items-center gap-1 rounded-md bg-surface-800/80 px-2 py-1 text-xs font-medium text-surface-400 sm:flex" data-task-id="${taskId}">
+          <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>
+          <span class="time-display">0m</span>
+        </span>
+        ${projectHtml}
+        ${dueDateHtml}
+        <span class="hidden rounded-full px-2 py-0.5 text-[10px] font-semibold text-surface-500 md:inline-block">To Do</span>
+      </div>
     `;
 
     const taskList = document.getElementById('task-list');
@@ -769,7 +786,7 @@ const statusColors = {
             return `<div class="flex items-center justify-between rounded-lg border border-surface-700/30 bg-surface-800/30 px-3 py-2">
               <div class="flex items-center gap-2">
                 <span class="h-1.5 w-1.5 rounded-full ${e.manual ? 'bg-amber-400' : 'bg-accent-400'}"></span>
-                <span class="text-xs text-surface-400">${e.description || (e.manual ? 'Manual entry' : 'Timer')}</span>
+                <span class="text-xs text-surface-400">${escapeHtml(e.description || (e.manual ? 'Manual entry' : 'Timer'))}</span>
               </div>
               <div class="flex items-center gap-2">
                 <span class="text-xs text-surface-500">${dateStr}</span>
