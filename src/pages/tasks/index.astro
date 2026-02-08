@@ -62,6 +62,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       </div>
       <div class="sm:col-span-2 lg:col-span-4">
         <textarea
+          id="task-description-input"
+          placeholder="Description (human-readable summary)..."
+          rows="2"
+          class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 placeholder:text-surface-500 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500"
+        ></textarea>
+      </div>
+      <div class="sm:col-span-2 lg:col-span-4">
+        <textarea
           id="task-prompt-input"
           placeholder="Agent prompt (instructions for Claude Code agents)..."
           rows="3"
@@ -501,7 +509,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       priority,
       status: 'todo',
       dueDate: dueDate || '',
-      description: '',
+      description: (document.getElementById('task-description-input') as HTMLTextAreaElement).value.trim(),
       prompt,
     });
 
@@ -511,6 +519,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     (document.getElementById('task-priority-input') as HTMLSelectElement).value = 'medium';
     (document.getElementById('task-date-input') as HTMLInputElement).value = '';
     (document.getElementById('task-prompt-input') as HTMLTextAreaElement).value = '';
+    (document.getElementById('task-description-input') as HTMLTextAreaElement).value = '';
     addForm?.classList.add('hidden');
 
     renderTasks();
@@ -585,17 +594,27 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         `).join('')}
       </div>
 
-      ${task.description ? `
-        <div class="mb-6">
-          <h4 class="mb-2 text-xs font-medium uppercase tracking-wider text-surface-500">Description</h4>
-          <p class="text-sm leading-relaxed text-surface-300">${escapeHtml(task.description)}</p>
-        </div>
-      ` : ''}
+      <div class="mb-6">
+        <h4 class="mb-2 text-xs font-medium uppercase tracking-wider text-surface-500">Description</h4>
+        ${task.description
+          ? `<p class="text-sm leading-relaxed text-surface-300">${escapeHtml(task.description)}</p>`
+          : `<p class="text-sm italic text-surface-500">No description.</p>`
+        }
+      </div>
 
       <div class="mb-2">
         <h4 class="mb-2 text-xs font-medium uppercase tracking-wider text-surface-500">Agent Prompt</h4>
         ${task.prompt
-          ? `<div class="rounded-lg border border-surface-700/50 bg-surface-800/50 p-4"><pre class="whitespace-pre-wrap text-sm leading-relaxed text-surface-300">${escapeHtml(task.prompt)}</pre></div>`
+          ? `<button id="prompt-toggle" class="flex items-center gap-2 text-sm font-medium text-accent-400 hover:text-accent-300 transition-colors">
+              <svg id="prompt-chevron" class="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+              See Prompt
+            </button>
+            <div id="prompt-content" class="mt-3 hidden">
+              <div class="relative rounded-lg border border-surface-700/50 bg-surface-800/50 p-4">
+                <button id="copy-prompt-btn" class="absolute right-2 top-2 rounded px-2 py-1 text-xs font-medium text-surface-400 hover:bg-surface-700 hover:text-surface-200 transition-colors" title="Copy prompt">Copy</button>
+                <pre class="whitespace-pre-wrap pr-16 text-sm leading-relaxed text-surface-300">${escapeHtml(task.prompt)}</pre>
+              </div>
+            </div>`
           : `<p class="text-sm italic text-surface-500">No prompt — this is a human-only task.</p>`
         }
       </div>
@@ -604,6 +623,30 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     document.getElementById('detail-edit-btn')!.addEventListener('click', () => {
       openEditPanel(task.id);
     });
+
+    const promptToggle = document.getElementById('prompt-toggle');
+    const promptContent = document.getElementById('prompt-content');
+    const promptChevron = document.getElementById('prompt-chevron');
+    const copyBtn = document.getElementById('copy-prompt-btn');
+
+    if (promptToggle && promptContent && promptChevron) {
+      promptToggle.addEventListener('click', () => {
+        promptContent.classList.toggle('hidden');
+        promptChevron.classList.toggle('rotate-90');
+        promptToggle.innerHTML = promptContent.classList.contains('hidden')
+          ? '<svg class="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg> See Prompt'
+          : '<svg class="h-4 w-4 rotate-90 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg> Hide Prompt';
+      });
+    }
+
+    if (copyBtn) {
+      copyBtn.addEventListener('click', () => {
+        navigator.clipboard.writeText(task.prompt).then(() => {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = 'Copy'; }, 1500);
+        });
+      });
+    }
 
     showPanel();
   }
