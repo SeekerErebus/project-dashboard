@@ -5,7 +5,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
   <!-- Page Header -->
   <div class="mb-8">
     <h1 class="text-2xl font-bold text-surface-100 tracking-tight">Dashboard</h1>
-    <p class="mt-1 text-sm text-surface-400">Welcome back, Jonathan. Here is what is happening across your projects.</p>
+    <p id="welcome-msg" class="mt-1 text-sm text-surface-400">Welcome back. Here is what is happening across your projects.</p>
   </div>
 
   <!-- Stat Cards -->
@@ -51,13 +51,18 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 </DashboardLayout>
 
 <script>
-  import { initStore, getProjects, getTasks, getActivity, getRevenue, getClients } from '../lib/store';
+  import { initStore, getProjects, getTasks, getActivity, getRevenue, getClients, getCurrentUser } from '../lib/store';
   import { Chart, BarController, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 
   Chart.register(BarController, CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
   document.addEventListener('DOMContentLoaded', async () => {
     await initStore();
+    const user = getCurrentUser();
+    const welcomeMsg = document.getElementById('welcome-msg');
+    if (welcomeMsg) {
+      welcomeMsg.textContent = `Welcome back, ${user.name.split(' ')[0]}. Here is what is happening across your projects.`;
+    }
     const projects = getProjects();
     const tasks = getTasks();
     const activity = getActivity();
