@@ -26,6 +26,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <select id="ef-status"
           class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
           <option value="lead">Lead</option>
+          <option value="active">Active</option>
           <option value="in-progress">In Progress</option>
           <option value="review">Review</option>
           <option value="completed">Completed</option>
@@ -153,6 +154,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   function statusBadge(status: string): { label: string; classes: string } {
     switch (status) {
       case 'lead': return { label: 'Lead', classes: 'bg-surface-500/15 text-surface-400' };
+      case 'active': return { label: 'Active', classes: 'bg-indigo-500/15 text-indigo-400' };
       case 'in-progress': return { label: 'In Progress', classes: 'bg-blue-500/15 text-blue-400' };
       case 'review': return { label: 'Review', classes: 'bg-amber-500/15 text-amber-400' };
       case 'completed': return { label: 'Completed', classes: 'bg-green-500/15 text-green-400' };
@@ -476,60 +478,59 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  // Call directly — DOM is already ready (module scripts are deferred, and we've awaited initStore)
+  renderPage();
+
+  // Cancel edit
+  document.getElementById('cancel-edit-btn')!.addEventListener('click', () => {
+    document.getElementById('edit-form-panel')!.classList.add('hidden');
+  });
+
+  // Save edit
+  document.getElementById('edit-form')!.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = (document.getElementById('ef-title') as HTMLInputElement).value.trim();
+    if (!title) return;
+
+    updateProject(projectId!, {
+      title,
+      status: (document.getElementById('ef-status') as HTMLSelectElement).value as Project['status'],
+      priority: (document.getElementById('ef-priority') as HTMLSelectElement).value as Project['priority'],
+      progress: parseInt((document.getElementById('ef-progress') as HTMLInputElement).value) || 0,
+      budget: parseInt((document.getElementById('ef-budget') as HTMLInputElement).value) || 0,
+      spent: parseInt((document.getElementById('ef-spent') as HTMLInputElement).value) || 0,
+      dueDate: (document.getElementById('ef-due') as HTMLInputElement).value || null,
+      description: (document.getElementById('ef-description') as HTMLTextAreaElement).value.trim(),
+      notes: (document.getElementById('ef-notes') as HTMLTextAreaElement).value.trim(),
+    });
+
+    document.getElementById('edit-form-panel')!.classList.add('hidden');
     renderPage();
+  });
 
-    // Cancel edit
-    document.getElementById('cancel-edit-btn')!.addEventListener('click', () => {
-      document.getElementById('edit-form-panel')!.classList.add('hidden');
+  // Cancel add task
+  document.getElementById('cancel-task-btn')!.addEventListener('click', () => {
+    document.getElementById('add-task-form')!.classList.add('hidden');
+  });
+
+  // Add task submit
+  document.getElementById('new-task-form')!.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = (document.getElementById('tf-title') as HTMLInputElement).value.trim();
+    if (!title) return;
+
+    addTask({
+      title,
+      project: projectId!,
+      priority: (document.getElementById('tf-priority') as HTMLSelectElement).value as Task['priority'],
+      status: 'todo',
+      dueDate: (document.getElementById('tf-due') as HTMLInputElement).value || '',
+      description: (document.getElementById('tf-description') as HTMLInputElement).value.trim(),
+      prompt: (document.getElementById('tf-prompt') as HTMLTextAreaElement).value.trim(),
     });
 
-    // Save edit
-    document.getElementById('edit-form')!.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const title = (document.getElementById('ef-title') as HTMLInputElement).value.trim();
-      if (!title) return;
-
-      updateProject(projectId!, {
-        title,
-        status: (document.getElementById('ef-status') as HTMLSelectElement).value as Project['status'],
-        priority: (document.getElementById('ef-priority') as HTMLSelectElement).value as Project['priority'],
-        progress: parseInt((document.getElementById('ef-progress') as HTMLInputElement).value) || 0,
-        budget: parseInt((document.getElementById('ef-budget') as HTMLInputElement).value) || 0,
-        spent: parseInt((document.getElementById('ef-spent') as HTMLInputElement).value) || 0,
-        dueDate: (document.getElementById('ef-due') as HTMLInputElement).value || null,
-        description: (document.getElementById('ef-description') as HTMLTextAreaElement).value.trim(),
-        notes: (document.getElementById('ef-notes') as HTMLTextAreaElement).value.trim(),
-      });
-
-      document.getElementById('edit-form-panel')!.classList.add('hidden');
-      renderPage();
-    });
-
-    // Cancel add task
-    document.getElementById('cancel-task-btn')!.addEventListener('click', () => {
-      document.getElementById('add-task-form')!.classList.add('hidden');
-    });
-
-    // Add task submit
-    document.getElementById('new-task-form')!.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const title = (document.getElementById('tf-title') as HTMLInputElement).value.trim();
-      if (!title) return;
-
-      addTask({
-        title,
-        project: projectId!,
-        priority: (document.getElementById('tf-priority') as HTMLSelectElement).value as Task['priority'],
-        status: 'todo',
-        dueDate: (document.getElementById('tf-due') as HTMLInputElement).value || '',
-        description: (document.getElementById('tf-description') as HTMLInputElement).value.trim(),
-        prompt: (document.getElementById('tf-prompt') as HTMLTextAreaElement).value.trim(),
-      });
-
-      (document.getElementById('new-task-form') as HTMLFormElement).reset();
-      document.getElementById('add-task-form')!.classList.add('hidden');
-      renderPage();
-    });
+    (document.getElementById('new-task-form') as HTMLFormElement).reset();
+    document.getElementById('add-task-form')!.classList.add('hidden');
+    renderPage();
   });
 </script>

@@ -35,6 +35,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         <select id="pf-status"
           class="w-full rounded-lg border border-surface-700 bg-surface-800/50 px-3 py-2 text-sm text-surface-200 focus:border-accent-500 focus:outline-none focus:ring-1 focus:ring-accent-500">
           <option value="lead">Lead</option>
+          <option value="active">Active</option>
           <option value="in-progress">In Progress</option>
           <option value="review">Review</option>
           <option value="completed">Completed</option>
@@ -196,6 +197,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
                   <div class="mt-3 flex items-center justify-between border-t border-surface-700/50 pt-3">
                     <select class="status-select rounded-md border border-surface-700 bg-surface-900 px-2 py-1 text-[11px] text-surface-300 focus:border-accent-500 focus:outline-none" data-id="${project.id}">
                       <option value="lead" ${project.status === 'lead' ? 'selected' : ''}>Lead</option>
+                      <option value="active" ${project.status === 'active' ? 'selected' : ''}>Active</option>
                       <option value="in-progress" ${project.status === 'in-progress' ? 'selected' : ''}>In Progress</option>
                       <option value="review" ${project.status === 'review' ? 'selected' : ''}>Review</option>
                       <option value="completed" ${project.status === 'completed' ? 'selected' : ''}>Completed</option>
@@ -243,77 +245,76 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     });
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
+  // Call directly — DOM is already ready (module scripts are deferred, and we've awaited initStore)
+  renderBoard();
+
+  // Populate client select
+  const clientSelect = document.getElementById('pf-client') as HTMLSelectElement;
+  const clients = getClients();
+  clients.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    opt.textContent = c.name;
+    clientSelect.appendChild(opt);
+  });
+
+  // Color swatch selection
+  document.querySelectorAll('.color-swatch').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.color-swatch').forEach(b => {
+        b.classList.remove('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
+      });
+      btn.classList.add('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
+      selectedColor = (btn as HTMLElement).dataset.color || '#6366f1';
+    });
+  });
+
+  // Toggle form
+  const formPanel = document.getElementById('new-project-form')!;
+  document.getElementById('new-project-btn')!.addEventListener('click', () => {
+    formPanel.classList.toggle('hidden');
+  });
+  document.getElementById('cancel-project-btn')!.addEventListener('click', () => {
+    formPanel.classList.add('hidden');
+  });
+
+  // Form submission
+  document.getElementById('project-form')!.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const title = (document.getElementById('pf-title') as HTMLInputElement).value.trim();
+    if (!title) return;
+
+    const client = (document.getElementById('pf-client') as HTMLSelectElement).value;
+    const status = (document.getElementById('pf-status') as HTMLSelectElement).value as Project['status'];
+    const priority = (document.getElementById('pf-priority') as HTMLSelectElement).value as Project['priority'];
+    const budget = parseInt((document.getElementById('pf-budget') as HTMLInputElement).value) || 0;
+    const dueDate = (document.getElementById('pf-due') as HTMLInputElement).value || null;
+    const description = (document.getElementById('pf-description') as HTMLTextAreaElement).value.trim();
+
+    addProject({
+      title,
+      client,
+      status,
+      priority,
+      budget,
+      spent: 0,
+      startDate: new Date().toISOString().split('T')[0],
+      dueDate,
+      progress: 0,
+      description,
+      scope: [],
+      notes: '',
+      color: selectedColor,
+    });
+
+    // Reset form
+    (document.getElementById('project-form') as HTMLFormElement).reset();
+    document.querySelectorAll('.color-swatch').forEach((b, i) => {
+      if (i === 0) b.classList.add('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
+      else b.classList.remove('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
+    });
+    selectedColor = '#6366f1';
+    formPanel.classList.add('hidden');
     renderBoard();
-
-    // Populate client select
-    const clientSelect = document.getElementById('pf-client') as HTMLSelectElement;
-    const clients = getClients();
-    clients.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c.id;
-      opt.textContent = c.name;
-      clientSelect.appendChild(opt);
-    });
-
-    // Color swatch selection
-    document.querySelectorAll('.color-swatch').forEach(btn => {
-      btn.addEventListener('click', () => {
-        document.querySelectorAll('.color-swatch').forEach(b => {
-          b.classList.remove('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
-        });
-        btn.classList.add('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
-        selectedColor = (btn as HTMLElement).dataset.color || '#6366f1';
-      });
-    });
-
-    // Toggle form
-    const formPanel = document.getElementById('new-project-form')!;
-    document.getElementById('new-project-btn')!.addEventListener('click', () => {
-      formPanel.classList.toggle('hidden');
-    });
-    document.getElementById('cancel-project-btn')!.addEventListener('click', () => {
-      formPanel.classList.add('hidden');
-    });
-
-    // Form submission
-    document.getElementById('project-form')!.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const title = (document.getElementById('pf-title') as HTMLInputElement).value.trim();
-      if (!title) return;
-
-      const client = (document.getElementById('pf-client') as HTMLSelectElement).value;
-      const status = (document.getElementById('pf-status') as HTMLSelectElement).value as Project['status'];
-      const priority = (document.getElementById('pf-priority') as HTMLSelectElement).value as Project['priority'];
-      const budget = parseInt((document.getElementById('pf-budget') as HTMLInputElement).value) || 0;
-      const dueDate = (document.getElementById('pf-due') as HTMLInputElement).value || null;
-      const description = (document.getElementById('pf-description') as HTMLTextAreaElement).value.trim();
-
-      addProject({
-        title,
-        client,
-        status,
-        priority,
-        budget,
-        spent: 0,
-        startDate: new Date().toISOString().split('T')[0],
-        dueDate,
-        progress: 0,
-        description,
-        scope: [],
-        notes: '',
-        color: selectedColor,
-      });
-
-      // Reset form
-      (document.getElementById('project-form') as HTMLFormElement).reset();
-      document.querySelectorAll('.color-swatch').forEach((b, i) => {
-        if (i === 0) b.classList.add('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
-        else b.classList.remove('ring-2', 'ring-white/50', 'ring-offset-1', 'ring-offset-surface-900');
-      });
-      selectedColor = '#6366f1';
-      formPanel.classList.add('hidden');
-      renderBoard();
-    });
   });
 </script>

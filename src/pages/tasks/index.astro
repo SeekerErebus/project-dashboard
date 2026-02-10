@@ -95,50 +95,50 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   </div>
 
   <!-- Filter Bar -->
-  <div id="filter-bar" class="mb-4 flex flex-wrap gap-3 rounded-xl border border-surface-700/30 bg-surface-900/80 p-3 sm:p-4">
-    <!-- Project Filter -->
-    <div class="flex flex-wrap items-center gap-2">
-      <span class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Project</span>
-      <div id="project-filters" class="flex flex-wrap gap-1">
-        <button class="fd-filter-chip filter-project active" data-project="all">All</button>
-      </div>
+  <div id="filter-bar" class="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-surface-700/30 bg-surface-900/80 p-3 sm:p-4">
+    <!-- Project -->
+    <div class="flex items-center gap-2">
+      <label for="filter-project" class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Project</label>
+      <select id="filter-project" class="fd-filter-select">
+        <option value="all">All</option>
+      </select>
     </div>
 
     <div class="hidden h-6 w-px bg-surface-700/50 sm:block"></div>
 
-    <!-- Priority Filter -->
-    <div class="flex flex-wrap items-center gap-2">
-      <span class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Priority</span>
-      <div class="flex gap-1">
-        <button class="fd-filter-chip filter-priority active" data-priority="all">All</button>
-        <button class="fd-filter-chip filter-priority" data-priority="high">High</button>
-        <button class="fd-filter-chip filter-priority" data-priority="medium">Medium</button>
-        <button class="fd-filter-chip filter-priority" data-priority="low">Low</button>
-      </div>
+    <!-- Priority -->
+    <div class="flex items-center gap-2">
+      <label for="filter-priority" class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Priority</label>
+      <select id="filter-priority" class="fd-filter-select">
+        <option value="all">All</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
     </div>
 
     <div class="hidden h-6 w-px bg-surface-700/50 sm:block"></div>
 
-    <!-- Status Filter -->
-    <div class="flex flex-wrap items-center gap-2">
-      <span class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Status</span>
-      <div class="flex gap-1">
-        <button class="fd-filter-chip filter-status active" data-status="all">All</button>
-        <button class="fd-filter-chip filter-status" data-status="todo">To Do</button>
-        <button class="fd-filter-chip filter-status" data-status="in-progress">In Progress</button>
-        <button class="fd-filter-chip filter-status" data-status="done">Done</button>
-      </div>
+    <!-- Status -->
+    <div class="flex items-center gap-2">
+      <label for="filter-status" class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Status</label>
+      <select id="filter-status" class="fd-filter-select">
+        <option value="all">All</option>
+        <option value="todo">To Do</option>
+        <option value="in-progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
     </div>
 
     <div class="hidden h-6 w-px bg-surface-700/50 sm:block"></div>
 
-    <!-- Assignee Filter -->
-    <div class="flex flex-wrap items-center gap-2">
-      <span class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Assignee</span>
-      <div class="flex gap-1">
-        <button class="fd-filter-chip filter-assignee active" data-assignee="all">All</button>
-        <button class="fd-filter-chip filter-assignee" data-assignee="mine">My Tasks</button>
-      </div>
+    <!-- Assignee -->
+    <div class="flex items-center gap-2">
+      <label for="filter-assignee" class="text-[10px] font-semibold uppercase tracking-widest text-surface-500">Assignee</label>
+      <select id="filter-assignee" class="fd-filter-select">
+        <option value="all">All</option>
+        <option value="mine">My Tasks</option>
+      </select>
     </div>
   </div>
 
@@ -199,6 +199,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
   let activePriority = 'all';
   let activeStatus = 'all';
   let activeAssignee = 'all';
+  let showAllDone = false;
 
   function getDueDateClass(dateStr: string | null): string {
     if (!dateStr) return 'text-surface-400';
@@ -229,29 +230,27 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     const projects = getProjects();
     const tasks = getTasks();
     const taskProjectRefs = new Set(tasks.filter(t => t.project).map(t => t.project));
-    const container = document.getElementById('project-filters');
-    if (!container) return;
+    const select = document.getElementById('filter-project') as HTMLSelectElement;
+    if (!select) return;
 
-    let html = '<button class="fd-filter-chip filter-project active" data-project="all">All</button>';
+    // Preserve current selection
+    const current = select.value;
+    select.innerHTML = '<option value="all">All</option>';
     projects.forEach(p => {
       if (taskProjectRefs.has(p.id) || taskProjectRefs.has(p.title)) {
-        html += `<button class="fd-filter-chip filter-project" data-project="${p.id}">
-          <span class="mr-1 inline-block h-2 w-2 rounded-full" style="background-color: ${p.color}"></span>
-          ${escapeHtml(p.title)}
-        </button>`;
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = p.title;
+        select.appendChild(opt);
       }
     });
-    container.innerHTML = html;
-
-    // Re-attach filter listeners
-    container.querySelectorAll('.filter-project').forEach(btn => {
-      btn.addEventListener('click', () => {
-        container.querySelectorAll('.filter-project').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        activeProject = (btn as HTMLElement).dataset.project || 'all';
-        applyFilters();
-      });
-    });
+    // Restore selection if still valid, else reset
+    if ([...select.options].some(o => o.value === current)) {
+      select.value = current;
+    } else {
+      select.value = 'all';
+      activeProject = 'all';
+    }
   }
 
   function renderProjectSelect() {
@@ -283,6 +282,14 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
       return dateA - dateB;
     });
 
+    // Limit done tasks to 5 most recent unless showAllDone is true
+    const nonDone = sorted.filter(t => t.status !== 'done');
+    const doneTasks = sorted.filter(t => t.status === 'done')
+      .sort((a, b) => (b.completedAt || '').localeCompare(a.completedAt || ''));
+    const visibleDone = showAllDone ? doneTasks : doneTasks.slice(0, 5);
+    const hiddenDoneCount = doneTasks.length - visibleDone.length;
+    const tasksToRender = [...nonDone, ...visibleDone];
+
     const activeTasks = tasks.filter(t => t.status !== 'done').length;
     const summary = document.getElementById('task-summary');
     if (summary) summary.textContent = `${activeTasks} active tasks, ${tasks.length} total`;
@@ -293,7 +300,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     if (!taskList) return;
 
-    if (sorted.length === 0) {
+    if (tasksToRender.length === 0 && hiddenDoneCount === 0) {
       taskList.innerHTML = '';
       if (emptyState) emptyState.classList.remove('hidden');
       if (emptyText) emptyText.textContent = 'No tasks yet. Add your first task to get started.';
@@ -302,7 +309,7 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
     if (emptyState) emptyState.classList.add('hidden');
 
-    taskList.innerHTML = sorted.map(task => {
+    taskList.innerHTML = tasksToRender.map(task => {
       const proj = task.project ? projectMap[task.project] : null;
       const isDone = task.status === 'done';
       const checkboxClasses = isDone
@@ -366,6 +373,29 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
         </div>
       </div>`;
     }).join('');
+
+    // Append "Show all done tasks" link if there are hidden done tasks
+    if (hiddenDoneCount > 0) {
+      taskList.innerHTML += `<div id="show-all-done" class="flex items-center justify-center border-t border-surface-700/30 py-3 text-sm">
+        <button class="text-accent-400 hover:text-accent-300 transition-colors">
+          Show all ${doneTasks.length} done tasks
+        </button>
+      </div>`;
+    }
+
+    // Attach "Show all done" button listener
+    const showAllDoneBtn = document.getElementById('show-all-done');
+    if (showAllDoneBtn) {
+      showAllDoneBtn.addEventListener('click', () => {
+        // Activate the Done status filter
+        activeStatus = 'done';
+        showAllDone = true;
+        // Update filter dropdown UI
+        const statusSelect = document.getElementById('filter-status') as HTMLSelectElement;
+        if (statusSelect) statusSelect.value = 'done';
+        renderTasks();
+      });
+    }
 
     // Attach checkbox listeners (with permission guard)
     taskList.querySelectorAll('.task-checkbox').forEach(btn => {
@@ -454,24 +484,29 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
     }
   }
 
-  // Priority filters
-  document.querySelectorAll('.filter-priority').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-priority').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activePriority = (btn as HTMLElement).dataset.priority || 'all';
-      applyFilters();
-    });
+  // Project filter
+  document.getElementById('filter-project')?.addEventListener('change', (e) => {
+    activeProject = (e.target as HTMLSelectElement).value;
+    applyFilters();
   });
 
-  // Status filters
-  document.querySelectorAll('.filter-status').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-status').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeStatus = (btn as HTMLElement).dataset.status || 'all';
-      applyFilters();
-    });
+  // Priority filter
+  document.getElementById('filter-priority')?.addEventListener('change', (e) => {
+    activePriority = (e.target as HTMLSelectElement).value;
+    applyFilters();
+  });
+
+  // Status filter
+  document.getElementById('filter-status')?.addEventListener('change', (e) => {
+    activeStatus = (e.target as HTMLSelectElement).value;
+    showAllDone = (activeStatus === 'done');
+    renderTasks();
+  });
+
+  // Assignee filter
+  document.getElementById('filter-assignee')?.addEventListener('change', (e) => {
+    activeAssignee = (e.target as HTMLSelectElement).value;
+    applyFilters();
   });
 
   // Add task form toggle
@@ -481,16 +516,6 @@ import DashboardLayout from '../../layouts/DashboardLayout.astro';
 
   addBtn?.addEventListener('click', () => addForm?.classList.toggle('hidden'));
   cancelBtn?.addEventListener('click', () => addForm?.classList.add('hidden'));
-
-  // Assignee filters
-  document.querySelectorAll('.filter-assignee').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.filter-assignee').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      activeAssignee = (btn as HTMLElement).dataset.assignee || 'all';
-      applyFilters();
-    });
-  });
 
   // Add task submission
   document.getElementById('new-task-form')?.addEventListener('submit', (e) => {

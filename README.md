@@ -1,4 +1,6 @@
-# FlowDesk
+# FlowDesk (Demo)
+
+> **This is a frozen portfolio demo.** It is not actively maintained. The live FlowDesk product is in active development in a separate repository.
 
 A project management dashboard built for freelancers and AI-agent-driven workflows. Track projects, tasks, clients, revenue, and deadlines from a single dark-themed command center.
 
